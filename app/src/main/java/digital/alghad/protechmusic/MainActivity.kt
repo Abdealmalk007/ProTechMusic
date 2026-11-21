@@ -322,7 +322,7 @@ private fun MusicApp(
         bottomBar={
             Column {
                 if(MusicRuntime.nowPlaying!=null){
-                    PlayerBar(service=service,expanded=showPlayer,onExpand={showPlayer=!showPlayer})
+                    PlayerBar(service=service,expanded=showPlayer,onExpand={showPlayer=!showPlayer},onShare={onShare(listOf(it))})
                 }
                 NavigationBar(containerColor=Color(0xFF202243)) {
                     listOf(Triple("all","الكل","♫"),Triple("sources","المصادر","▦"),
@@ -548,7 +548,7 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
 }
 
 @Composable
-private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit){
+private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,onShare:(AudioTrack)->Unit){
     val track=MusicRuntime.nowPlaying ?:return
     Surface(color=Color(0xFF2B2857),tonalElevation=5.dp){
         Column(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp)){
@@ -571,6 +571,7 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit){
                     Text(readableTime(MusicRuntime.duration),style=MaterialTheme.typography.labelSmall)
                 }
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){
+                    TextButton(onClick={onShare(track)}){Text("مشاركة المقطع")}
                     TextButton(onClick={service?.changeShuffle()}){Text(if(MusicRuntime.shuffle)"خلط ✓" else "خلط")}
                     TextButton(onClick={service?.changeRepeat()}){Text(when(MusicRuntime.repeat){1->"تكرار 1";2->"تكرار الكل";else->"بدون تكرار"})}
                     TextButton(onClick={service?.changeSpeed(if(MusicRuntime.speed>=2f)1f else MusicRuntime.speed+.25f)}){

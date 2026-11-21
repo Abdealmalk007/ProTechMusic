@@ -1,0 +1,28 @@
+{
+  "project": "ProTech Music",
+  "version": "0.3.1",
+  "status": "DEBUG_QA_NOT_RELEASE",
+  "current_progress_file": "docs/PROGRESS.json",
+  "observed_pass_weight_percent": 24,
+  "git_commit": "8fe3c95",
+  "plan": "docs/PLAN_V6_THREE_PHASES_2026-11-21.md",
+  "qa": "docs/QA_V6_2026-11-21.md",
+  "apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.1_DEBUG.apk",
+  "sha256": "7E1AD710C48DCA48F22179FD4E34D8434CC81998974EEDFDFF713136FBC6330E",
+  "verified": [
+    "Gradle debug build passed",
+    "7 source classifier tests passed",
+    "Android 15 emulator installed and launched",
+    "single file share opens chooser",
+    "now playing share opens chooser",
+    "existing V4/V5 documented multi share, source lists, playlists, backup"
+  ],
+  "next_tasks": [
+    "M3U/M3U8 portability and missing URI behavior",
+    "large-library performance and media change tests",
+    "permissions and SAF persistence across Android versions",
+    "audio boost/Bluetooth hardware safety QA",
+    "release signing and deployment gate"
+  ],
+  "note": "Progress.json was locked by another process when a V6 metadata update was attempted; this independent handoff file preserves latest QA without overwriting a concurrent update."
+}

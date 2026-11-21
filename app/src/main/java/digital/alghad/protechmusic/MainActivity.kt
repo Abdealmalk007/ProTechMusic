@@ -50,6 +50,17 @@ class MainActivity:ComponentActivity() {
     private var busy by mutableStateOf(false)
     private var failure by mutableStateOf("")
     private var refreshCounter by mutableIntStateOf(0)
+    private val deletion=MediaDeletionController(this,
+        onDeleted={ refs ->
+            try{db.purgeDeleted(refs.toList())}catch(_:Exception){}
+            try{musicService?.removeDeletedMedia(refs)}catch(_:Exception){}
+        },
+        onFinished={message ->
+            Toast.makeText(this,message,Toast.LENGTH_LONG).show()
+            refresh()
+            refreshCounter++
+        }
+    )
     private val requestAudio=registerForActivityResult(ActivityResultContracts.RequestPermission()){ granted->
         allowed=granted
         if(granted) refresh()
@@ -223,6 +234,13 @@ class MainActivity:ComponentActivity() {
                         }
                     },
                     onShare={shareTracks(it)},
+                    onDelete={deletion.begin(it)},
+                    onPlayGroup={tracks,random ->
+                        if(tracks.isNotEmpty()) {
+                            try{startService(Intent(this,MusicService::class.java))}catch(_:Exception){}
+                            musicService?.apply{playQueue(tracks,0);setShuffle(random)}
+                        }
+                    },
                     onExport={createBackup.launch("ProTechMusic_backup.json")},
                     onImport={openBackup.launch(arrayOf("application/json","text/plain"))},
                     onImportM3u={openM3u.launch(arrayOf("*/*"))},
@@ -304,7 +322,10 @@ private fun MusicApp(
     service:MusicService?,db:MusicStore,revision:Int,
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
-    onShare:(List<AudioTrack>)->Unit,onExport:()->Unit,onImport:()->Unit,
+    onShare:(List<AudioTrack>)->Unit,
+    onDelete:(List<AudioTrack>)->Unit,
+    onPlayGroup:(List<AudioTrack>,Boolean)->Unit,
+    onExport:()->Unit,onImport:()->Unit,
     onExportM3u:(Long)->Unit,onImportM3u:()->Unit,
     importReport:String?,onDismissReport:()->Unit,onChanged:()->Unit
 ){
@@ -322,6 +343,7 @@ private fun MusicApp(
     var confirmPlaylistDelete by remember{mutableStateOf(false)}
     var selection by remember{mutableStateOf(false)}
     val selected= remember{mutableStateListOf<String>()}
+    var confirmPermanentDelete by remember{mutableStateOf<List<AudioTrack>>(emptyList())}
     var showPlayer by remember{mutableStateOf(false)}
     val playlists=remember(revision){ db.playlists() }
     val favorites=remember(revision){db.favorites()}
@@ -353,6 +375,22 @@ private fun MusicApp(
         AlertDialog(onDismissRequest=onDismissReport,title={Text("نتيجة استيراد M3U8")},
             text={Text(importReport)},
             confirmButton={TextButton(onClick=onDismissReport){Text("إغلاق")}})
+    }
+    if(confirmPermanentDelete.isNotEmpty()){
+        val candidates=confirmPermanentDelete
+        AlertDialog(
+            onDismissRequest={confirmPermanentDelete=emptyList()},
+            title={Text("حذف نهائي من الجهاز",color=Color(0xFFFFAAAA))},
+            text={Text("سيُحذف "+candidates.size+
+                " مقطع صوتي نهائيًا من ذاكرة الجهاز، وليس من قائمة التشغيل فقط. لا يمكن التراجع. سيطلب Android موافقتك، والملفات التي لا يسمح بحذفها ستبقى.")},
+            confirmButton={TextButton(onClick={
+                confirmPermanentDelete=emptyList()
+                onDelete(candidates)
+                selected.clear()
+                selection=false
+            }){Text("تأكيد الحذف النهائي",color=Color(0xFFFF9999))}},
+            dismissButton={TextButton(onClick={confirmPermanentDelete=emptyList()}){Text("إلغاء")}}
+        )
     }
     if(confirmPlaylistDelete){
         AlertDialog(
@@ -588,6 +626,7 @@ private fun MusicApp(
                                     onRemove={service?.queueRemove(index)},
                                     onUp={service?.queueMove(index,-1)},
                                     onDown={service?.queueMove(index,1)},
+                                    onPermanentDelete={confirmPermanentDelete=listOf(track)},
                                     showQueueActions=false)
                             }
                         }
@@ -599,7 +638,13 @@ private fun MusicApp(
                     val p=playlists.firstOrNull{it.id==playlist}
                     Column {
                         Text(p?.name ?: "قائمة التشغيل",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
-                        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                            Button(onClick={onPlayGroup(playlistUris.mapNotNull{byUri[it]},false)},enabled=playlistUris.isNotEmpty()){
+                                Text("تشغيل القائمة بالترتيب")
+                            }
+                            OutlinedButton(onClick={onPlayGroup(playlistUris.mapNotNull{byUri[it]},true)},enabled=playlistUris.isNotEmpty()){
+                                Text("تشغيل القائمة عشوائيًا")
+                            }
                             OutlinedButton(onClick={onExportM3u(playlist)},enabled=playlistUris.isNotEmpty()){
                                 Text("تصدير M3U8")
                             }
@@ -607,11 +652,20 @@ private fun MusicApp(
                                 Text("مشاركة القائمة")
                             }
                             TextButton(onClick={playlistName=p?.name.orEmpty();playlistForEdit=playlist;creating=true}){Text("تعديل")}
-                            TextButton(onClick={confirmPlaylistDelete=true}){Text("حذف")}
+                            TextButton(onClick={confirmPlaylistDelete=true}){Text("حذف القائمة فقط")}
+                            OutlinedButton(onClick={selection=!selection;selected.clear()}){
+                                Text(if(selection)"إلغاء التحديد" else "تحديد مقاطع")
+                            }
                         }
                     }
                 } else if(tab=="favorites"){
-                    Text("المفضلة ♥",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                        Text("المفضلة ♥",style=MaterialTheme.typography.titleLarge,
+                            fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
+                        TextButton(onClick={selection=!selection;selected.clear()}){
+                            Text(if(selection)"إلغاء التحديد" else "تحديد")
+                        }
+                    }
                 } else if(tab=="source"){
                     Text("المصدر: $source (${filtered.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="folder"){
@@ -624,14 +678,27 @@ private fun MusicApp(
                 OutlinedTextField(value=search,onValueChange={search=it},
                     label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,
                     modifier=Modifier.fillMaxWidth().padding(vertical=6.dp))
-                if(selection && selected.isNotEmpty()){
+                if(selection){
+                    val chosen=selected.mapNotNull{byUri[it]}
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        Button(onClick={adding=selected.mapNotNull{byUri[it]}}){
-                            Text("إضافة ${selected.size} إلى قائمة")
-                        }
-                        OutlinedButton(onClick={onShare(selected.mapNotNull{byUri[it]})}){
-                            Text("مشاركة المحدد")
+                        OutlinedButton(onClick={
+                            filtered.forEach{ if(it.uri !in selected)selected.add(it.uri) }
+                        },enabled=filtered.isNotEmpty()){Text("تحديد الكل ("+filtered.size+")")}
+                        TextButton(onClick={selected.clear()}){Text("إلغاء التحديد")}
+                        Text(chosen.size.toString()+" محدد",color=aqua,
+                            modifier=Modifier.align(Alignment.CenterVertically))
+                    }
+                    if(chosen.isNotEmpty()){
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                            Button(onClick={adding=chosen}){Text("إضافة إلى قائمة")}
+                            OutlinedButton(onClick={onShare(chosen)}){Text("مشاركة")}
+                            OutlinedButton(onClick={onPlayGroup(chosen,false)}){Text("تشغيل بالترتيب")}
+                            OutlinedButton(onClick={onPlayGroup(chosen,true)}){Text("تشغيل عشوائي")}
+                            OutlinedButton(onClick={confirmPermanentDelete=chosen}){
+                                Text("حذف نهائي",color=Color(0xFFFFAAAA))
+                            }
                         }
                     }
                 }
@@ -654,7 +721,8 @@ private fun MusicApp(
                             onUp={db.moveInPlaylist(playlist,track.uri,-1);onChanged()},
                             onDown={db.moveInPlaylist(playlist,track.uri,1);onChanged()},
                             onPlayNext={service?.playNext(track)},
-                            onEnqueue={service?.enqueue(track)})
+                            onEnqueue={service?.enqueue(track)},
+                            onPermanentDelete={confirmPermanentDelete=listOf(track)})
                         HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
                     }
                 }
@@ -667,7 +735,8 @@ private fun MusicApp(
 private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPlaylist:Boolean,
     favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
     onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit,
-    onPlayNext:()->Unit={},onEnqueue:()->Unit={},showQueueActions:Boolean=true){
+    onPlayNext:()->Unit={},onEnqueue:()->Unit={},onPermanentDelete:()->Unit={},
+    showQueueActions:Boolean=true){
     var menuExpanded by remember(track.uri){mutableStateOf(false)}
     Row(
         Modifier.fillMaxWidth().heightIn(min=72.dp).padding(vertical=4.dp),
@@ -725,6 +794,10 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
                     DropdownMenuItem(text={Text("إضافة إلى قائمة الانتظار")},
                         onClick={menuExpanded=false;onEnqueue()})
                 }
+                DropdownMenuItem(
+                    text={Text("حذف الملف نهائيًا من الجهاز",color=Color(0xFFFFAAAA))},
+                    onClick={menuExpanded=false;onPermanentDelete()}
+                )
                 if(inPlaylist){
                     HorizontalDivider()
                     DropdownMenuItem(text={Text("تحريك لأعلى")},onClick={menuExpanded=false;onUp()})

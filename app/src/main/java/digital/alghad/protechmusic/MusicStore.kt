@@ -84,6 +84,19 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
         return if(isFavorite(uri)){db.delete("favorites","uri=?",arrayOf(uri));false}
         else {db.insertWithOnConflict("favorites",null,ContentValues().apply{put("uri",uri)},SQLiteDatabase.CONFLICT_IGNORE);true}
     }
+    @Synchronized fun purgeDeleted(uris:List<String>) {
+        if(uris.isEmpty())return
+        val db=writableDatabase
+        db.beginTransaction()
+        try {
+            uris.distinct().forEach { uri ->
+                db.delete("entries","uri=?",arrayOf(uri))
+                db.delete("favorites","uri=?",arrayOf(uri))
+                db.delete("imported","uri=?",arrayOf(uri))
+            }
+            db.setTransactionSuccessful()
+        }finally{db.endTransaction()}
+    }
     @Synchronized fun favorites():Set<String> {
         val out=mutableSetOf<String>()
         readableDatabase.rawQuery("SELECT uri FROM favorites",null).use{while(it.moveToNext())out.add(it.getString(0))}

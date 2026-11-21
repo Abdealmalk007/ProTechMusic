@@ -1,0 +1,34 @@
+{
+    "project":  "ProTech Music",
+    "version":  "0.3.4",
+    "updated_on":  "2026-11-21",
+    "status":  "DEBUG_QA_NOT_RELEASE",
+    "overall_progress_percent":  28,
+    "completed_roadmap_tasks":  7,
+    "new_roadmap_task_closure":  "NONE — improvements extend existing tasks",
+    "verified_features":  [
+                              "Media3 automatic transition between two test WAV tracks",
+                              "Playlist-only ordered mode, 3 items confirmed in saved queue",
+                              "Playlist-only shuffle mode, persisted shuffle=true",
+                              "Select all 10 tracks; Android sharesheet Sharing 10 files",
+                              "Arbitrary 2 selection; added to existing QAPlaylist",
+                              "Permanent delete of synthetic test file after both app and OS confirmation",
+                              "App cancel and OS Deny preserved synthetic media",
+                              "Android bottom safe area unaffected"
+                          ],
+    "qa_report":  "docs/QA_V034_PLAYBACK_BULK_DELETE_2026-11-21.md",
+    "build_log":  "docs/build_v034_bulk_delete.log",
+    "unit_tests":  "14/14 PASS",
+    "latest_apk":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.4_DEBUG.apk",
+    "apk_sha256":  "2388E14BEEA5C118B4D7894203C7ADAA6CBCFE00BFDBAE3B8AFCB96E61E88A4C",
+    "apk_bytes":  12039515,
+    "next_task_id":  "13",
+    "remaining_percent":  72,
+    "blockers":  [
+                     "Real phone and Android version matrix",
+                     "Repeat one/all/off full scenario QA",
+                     "SAF provider delete support",
+                     "Large library performance",
+                     "Signing, GitHub and website publication"
+                 ]
+}

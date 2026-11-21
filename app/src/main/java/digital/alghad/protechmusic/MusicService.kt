@@ -82,7 +82,9 @@ class MusicService : Service() {
                     remember()
                 }
                 override fun onPlaybackStateChanged(playbackState:Int) {
+                    // ExoPlayer advances to the next item in the selected queue.
                     updateSession()
+                    if(playbackState==Player.STATE_ENDED)remember()
                 }
                 override fun onAudioSessionIdChanged(audioSessionId:Int) {
                     attachEffects(audioSessionId)
@@ -129,6 +131,18 @@ class MusicService : Service() {
         showNotification(true)
         remember()
     }
+    fun removeDeletedMedia(uris:Set<String>) {
+        if(uris.isEmpty())return
+        for(index in tracks.indices.reversed()) {
+            if(tracks[index].uri in uris) {
+                player.removeMediaItem(index)
+                tracks=tracks.toMutableList().apply{removeAt(index)}
+            }
+        }
+        MusicRuntime.nowPlaying=tracks.getOrNull(player.currentMediaItemIndex)
+        MusicRuntime.queueRevision++
+        remember()
+    }
     fun queueSnapshot(): List<AudioTrack> = tracks.toList()
     fun queueCurrentIndex(): Int = player.currentMediaItemIndex
     fun playNext(track: AudioTrack) {
@@ -169,7 +183,12 @@ class MusicService : Service() {
     fun next(){if(player.hasNextMediaItem())player.seekToNextMediaItem() else if (MusicRuntime.repeat==2) player.seekTo(0,0)}
     fun previous(){if(player.currentPosition>3500L)player.seekTo(0L) else if(player.hasPreviousMediaItem())player.seekToPreviousMediaItem() else player.seekTo(0L)}
     fun seek(ms:Long){player.seekTo(ms.coerceAtLeast(0L))}
-    fun changeShuffle(){player.shuffleModeEnabled=!player.shuffleModeEnabled; MusicRuntime.shuffle=player.shuffleModeEnabled}
+    fun setShuffle(enabled:Boolean) {
+        player.shuffleModeEnabled=enabled
+        MusicRuntime.shuffle=enabled
+        preferences.edit().putBoolean("shuffle",enabled).apply()
+    }
+    fun changeShuffle(){setShuffle(!player.shuffleModeEnabled)}
     fun changeRepeat() {
         MusicRuntime.repeat=(MusicRuntime.repeat+1)%3
         player.repeatMode=when(MusicRuntime.repeat){1->Player.REPEAT_MODE_ONE;2->Player.REPEAT_MODE_ALL;else->Player.REPEAT_MODE_OFF}
@@ -302,6 +321,7 @@ class MusicService : Service() {
                 player.setMediaItems(saved.map{MediaItem.fromUri(it.uri)},preferences.getInt("index",0).coerceIn(0,saved.lastIndex),
                     preferences.getLong("position",0))
                 player.prepare()
+                setShuffle(preferences.getBoolean("shuffle",false))
                 MusicRuntime.nowPlaying=saved.getOrNull(player.currentMediaItemIndex)
                 MusicRuntime.queueRevision++
             }

@@ -1,0 +1,69 @@
+{
+  "project": "ProTech Music",
+  "timestamp": "2026-11-21",
+  "version": "0.3.8",
+  "state": "DEBUG_QA_ONLY_NOT_RELEASE_READY",
+  "official_progress_percent": 40,
+  "completed_original_tasks": 10,
+  "total_original_tasks": 25,
+  "closure_plan": "docs/RELEASE_CLOSURE_2_PHASES_15_STEPS_2026-11-21.md",
+  "closure_tracker": "docs/RELEASE_CLOSURE_PROGRESS.json",
+  "phase_F_completion_percent": 46.7,
+  "phase_F_passed_steps": 7,
+  "phase_F_total_steps": 15,
+  "phase_R_completion_percent": 0,
+  "phase_R_total_steps": 15,
+  "this_cycle_passed_steps": [
+    "F04",
+    "F05",
+    "F10"
+  ],
+  "this_cycle_passed_original_tasks": [
+    "10",
+    "15"
+  ],
+  "latest_code_checkpoint": "2c4c996",
+  "next_step": "F06",
+  "next_original_task": "06",
+  "build": "docs/build_v038_final.log",
+  "test_status": "36/36 JUnit PASS",
+  "latest_apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.8_DEBUG.apk",
+  "latest_apk_sha256": "DB1DBDE574FD563DFB3247B4EA954346D08037F4F1260FB4D8E3535F2255EF7E",
+  "source_backup": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_Source_2c4c996.zip",
+  "source_sha256": "1C0ECE8D3F3EB129F8A67B756F52655CC73E2A49FF03E9970A36D5C482937175",
+  "qa_avd": "ProTechMusicQA35_211126 Android 15 API35 isolated AVD",
+  "qa_screenshots": [
+    "qa/v038_loaded.png",
+    "qa/v038_sources.png",
+    "qa/v038_playlists_tab.png",
+    "qa/v038_backup_picker_loaded.png",
+    "qa/v038_backup_restored.png"
+  ],
+  "qa_reports": [
+    "docs/QA_F04_SEARCH_PAGING_V038_2026-11-21.md",
+    "docs/QA_F05_SOURCES_V038_2026-11-21.md",
+    "docs/QA_F10_BACKUP_V038_2026-11-21.md"
+  ],
+  "qa_findings": [
+    "MediaStore selected by READ_MEDIA_AUDIO indexed 7 synthetic test wav tracks across WhatsApp/Downloads/Telegram/Recordings/Music",
+    "Source UI groups WhatsApp 1, Downloads 1, Recordings 1, Telegram 1, Music 3",
+    "JSON v2 export via Android DocumentsUI produced valid 337 byte file with per-track metadata",
+    "Deleting custom playlist only removed DB playlist/entry but retained original audio",
+    "Importing the exact exported JSON via Android DocumentsUI restored one playlist with one valid content URI and 0 observed crashes",
+    "10,000 synthetic search records JUnit test completed in 0.196s on desktop",
+    "Paging UI built with LazyColumn, display 200 and Show More/Show All, needs real 200+ on-device stress"
+  ],
+  "remaining_work": [
+    "F06 playlist duplicate and custom cover, more playlist gestures",
+    "F08 repeat 0/1/all, edge-of-queue and long-running shuffle matrix",
+    "F09 Android versions deletion consent and SAF unsupported URI verification",
+    "F11 amplifier/bass hardware QA, avoid distortion claim",
+    "F12 notifications, lyrics and audio focus",
+    "F13 landscape, TalkBack and large font",
+    "F14 large-media stress and Android battery",
+    "F15 release candidate P0/P1 gate",
+    "R01-R15 multi-version hardware, security, signed release, verified GitHub+site publication"
+  ],
+  "constraints": "Do not reuse this handoff as proof of a signed/final release. Do not delete user media, do not overwrite personal app data, and never reset progress. Keep future PASS evidence-backed.",
+  "resume_instructions": "Start by reading docs/PROGRESS.json, docs/RELEASE_CLOSURE_PROGRESS.json, docs/HANDOFF_V13.json, git status. Automatically advance to next independent closure step after QA. Do not rebuild previous phases or recreate plan. Percentage update for each session."
+}

@@ -1,14 +1,14 @@
 {
     "schema_version":  1,
     "plan_path":  "docs/RELEASE_CLOSURE_2_PHASES_15_STEPS_2026-11-21.md",
-    "baseline_release_progress_percent":  36,
+    "baseline_release_progress_percent":  40,
     "official_progress_source":  "docs/PROGRESS.json",
     "status":  "IN_PROGRESS_NOT_RELEASE_READY",
     "phases":  [
                    {
                        "id":  "F",
                        "label":  "Feature Complete RC",
-                       "progress_percent":  33.3,
+                       "progress_percent":  46.7,
                        "steps":  [
                                      {
                                          "id":  "F01",
@@ -32,8 +32,8 @@
                                      },
                                      {
                                          "id":  "F05",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F05_SOURCES_V038_2026-11-21.md"
                                      },
                                      {
                                          "id":  "F06",
@@ -57,8 +57,8 @@
                                      },
                                      {
                                          "id":  "F10",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F10_BACKUP_V038_2026-11-21.md"
                                      },
                                      {
                                          "id":  "F11",
@@ -170,6 +170,6 @@
                                  ]
                    }
                ],
-    "next_step":  "F05",
-    "last_evidence":  "docs/QA_F04_SEARCH_PAGING_V038_2026-11-21.md"
+    "next_step":  "F06",
+    "last_evidence":  "docs/QA_F10_BACKUP_V038_2026-11-21.md"
 }

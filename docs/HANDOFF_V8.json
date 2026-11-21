@@ -21,7 +21,9 @@
                       "mini_player":  "compact",
                       "expanded_player":  "ModalBottomSheet",
                       "dark_sheet_text_contrast":  "PASS",
-                      "evidence":  "docs/QA_UI_V032_2026-11-21.md"
+                      "evidence":  "docs/QA_UI_V032_2026-11-21.md",
+                      "font_scale_1_3_at_320dp":  "PASS_ON_ANDROID15_EMULATOR",
+                      "emulator_restored_to_original":  true
                   },
     "qa_build_log":  "docs/build_layout_v032_final.log",
     "apk_local_path":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.2_DEBUG.apk",

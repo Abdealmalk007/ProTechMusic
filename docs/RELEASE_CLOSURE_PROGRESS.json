@@ -8,7 +8,7 @@
                    {
                        "id":  "F",
                        "label":  "Feature Complete RC",
-                       "progress_percent":  46.7,
+                       "progress_percent":  66.7,
                        "steps":  [
                                      {
                                          "id":  "F01",
@@ -37,8 +37,8 @@
                                      },
                                      {
                                          "id":  "F06",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F06_PLAYLIST_CRUD_V038_2026-11-21.md"
                                      },
                                      {
                                          "id":  "F07",
@@ -47,13 +47,13 @@
                                      },
                                      {
                                          "id":  "F08",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F08_PLAYBACK_MODES_V038_2026-11-21.md"
                                      },
                                      {
                                          "id":  "F09",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F09_SAFE_DELETE_V038_2026-11-21.md"
                                      },
                                      {
                                          "id":  "F10",
@@ -170,6 +170,6 @@
                                  ]
                    }
                ],
-    "next_step":  "F06",
-    "last_evidence":  "docs/QA_F10_BACKUP_V038_2026-11-21.md"
+    "next_step":  "F11",
+    "last_evidence":  "docs/QA_F09_SAFE_DELETE_V038_2026-11-21.md"
 }

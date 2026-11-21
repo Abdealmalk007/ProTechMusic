@@ -1,0 +1,64 @@
+{
+  "project": "ProTech Music",
+  "date": "2026-11-21",
+  "app_version": "0.3.8",
+  "release_readiness": "DEBUG_QA_ONLY_NOT_FINAL",
+  "official_roadmap_progress_percent": 40,
+  "original_roadmap_passed": 10,
+  "original_roadmap_total": 25,
+  "closure_plan": "docs/RELEASE_CLOSURE_2_PHASES_15_STEPS_2026-11-21.md",
+  "closure_tracker": "docs/RELEASE_CLOSURE_PROGRESS.json",
+  "closure_phase_F_percent": 66.7,
+  "closure_phase_F_passed": 10,
+  "closure_phase_F_total": 15,
+  "closure_phase_R_percent": 0,
+  "closure_phase_R_total": 15,
+  "newly_verified_steps": [
+    "F06: UI playlist CRUD, dedup, order, rename, non-destructive remove + persisted data",
+    "F08: automatic next, playlist-only queue, shuffle, repeat OFF/ONE/ALL with real MediaSession",
+    "F09: app cancel and Android deny preserve audio, Android Allow permanently removes ONLY synthetic test WAV"
+  ],
+  "qa_emulator": "ProTechMusicQA35_211126 Android 15 API35 (isolated)",
+  "personal_media_deleted": false,
+  "qa_reports": [
+    "docs/QA_F06_PLAYLIST_CRUD_V038_2026-11-21.md",
+    "docs/QA_F08_PLAYBACK_MODES_V038_2026-11-21.md",
+    "docs/QA_F09_SAFE_DELETE_V038_2026-11-21.md"
+  ],
+  "qa_screen_images": [
+    "qa/f06_three.png",
+    "qa/f06_overflow.png",
+    "qa/f06_remove_menu.png",
+    "qa/f06_rename_dialog.png",
+    "qa/f08_repeat_one_ui.png",
+    "qa/f08_repeat_all_ui.png",
+    "qa/f08_shuffle_ui.png",
+    "qa/f09_app_confirm.png",
+    "qa/f09_system_request.png",
+    "qa/f09_denied.png",
+    "qa/f09_allow_os_consent.png",
+    "qa/f09_after_allow.png"
+  ],
+  "latest_debug_apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.8_DEBUG.apk",
+  "latest_debug_sha256": "DB1DBDE574FD563DFB3247B4EA954346D08037F4F1260FB4D8E3535F2255EF7E",
+  "prior_code_git_commit": "738138f",
+  "prior_build_log": "docs/build_v038_final.log",
+  "unit_tests": "36/36 PASS",
+  "next_step": "F11",
+  "next_step_goal": "Sound amplifier bounded +6 dB, Equalizer/BassBoost device capabilities and safe failure, test on emulator then actual phone; do not assume audio effect is supported by all devices",
+  "future_steps": [
+    "F12 album art/lyrics/notification/audio focus",
+    "F13 responsive interface/large font/landscape/TalkBack",
+    "F14 1k/10k/50k performance tests",
+    "F15 release candidate build+QA",
+    "R01-R15 release matrix, signing, GitHub and alghad.digital publishing"
+  ],
+  "limits": [
+    "Android15 only verified for current tests; multi-Android/device QA still pending",
+    "Long-running statistical shuffle distribution not validated",
+    "Android deletion batches and SAF providers not verified beyond MediaStore single fixture",
+    "No production signing or GitHub/site publication yet",
+    "Repeat mode settings do not persist through service restart; should be addressed in F12 or R07"
+  ],
+  "resume_instruction": "Read this handoff, docs/PROGRESS.json, docs/RELEASE_CLOSURE_PROGRESS.json and current git status before work. Never recreate plan or reset progress. Automatically resume at F11. Log actual QA evidence, commit after each subtask. The canonical project progress is weighted original tasks only. Do not delete user media to test."
+}

@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
+import org.json.JSONArray
 
 data class Playlist(val id:Long,val name:String,val count:Int)
 
@@ -72,7 +73,7 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
         val db=writableDatabase;db.beginTransaction()
         try {
             rows.forEachIndexed{position,value->
-                db.execSQL("UPDATE entries SET position=? WHERE playlist_id=? AND uri=?",arrayOf(position,id,value))
+                db.execSQL("UPDATE entries SET position=? WHERE playlist_id=? AND uri=?",arrayOf<Any>(position,id,value))
             };db.setTransactionSuccessful()
         }finally{db.endTransaction()}
     }
@@ -97,6 +98,79 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
             put("uri",t.uri);put("record",record)
         },SQLiteDatabase.CONFLICT_REPLACE)
     }
+    @Synchronized fun exportBackup():String {
+        val root=JSONObject()
+        root.put("format","ProTechMusicBackup")
+        root.put("version",1)
+        val lists=JSONArray()
+        playlists().forEach { playlist ->
+            val entries=JSONArray()
+            playlistTracks(playlist.id).forEach{entries.put(it)}
+            lists.put(JSONObject().put("name",playlist.name).put("tracks",entries))
+        }
+        root.put("playlists",lists)
+        val fav=JSONArray()
+        favorites().sorted().forEach{fav.put(it)}
+        root.put("favorites",fav)
+        return root.toString(2)
+    }
+
+    @Synchronized fun restoreBackup(content:String):Int {
+        require(content.length <= 2_000_000){"Backup too large"}
+        val root=JSONObject(content)
+        require(root.optString("format")=="ProTechMusicBackup" &&
+            root.optInt("version")==1){"Unsupported backup format"}
+        val arr=root.getJSONArray("playlists")
+        require(arr.length()<=1000){"Too many playlists"}
+        val normalized=mutableListOf<Pair<String,List<String>>>()
+        var total=0
+        for(i in 0 until arr.length()){
+            val row=arr.getJSONObject(i)
+            val name=row.getString("name").trim()
+            require(name.isNotEmpty() && name.length<=100){"Invalid playlist name"}
+            val entries=row.getJSONArray("tracks")
+            require(entries.length()<=50000){"Playlist too large"}
+            val uris=mutableListOf<String>()
+            for(j in 0 until entries.length()){
+                val uri=entries.getString(j)
+                require(uri.length<=2048 && uri.startsWith("content://")){"Invalid media URI"}
+                uris.add(uri)
+                total++
+                require(total<=100000){"Too many entries"}
+            }
+            normalized.add(name to uris.distinct())
+        }
+        val favArr=root.optJSONArray("favorites")?:JSONArray()
+        require(favArr.length()<=100000){"Too many favorites"}
+        val fav=mutableListOf<String>()
+        for(i in 0 until favArr.length()){
+            val uri=favArr.getString(i)
+            require(uri.length<=2048 && uri.startsWith("content://")){"Invalid favorite URI"}
+            fav.add(uri)
+        }
+        val db=writableDatabase
+        db.beginTransaction()
+        try {
+            for((name,items) in normalized){
+                val existing=db.rawQuery("SELECT id FROM playlists WHERE name=? COLLATE NOCASE",
+                    arrayOf(name)).use{if(it.moveToFirst())it.getLong(0) else -1L}
+                val id=if(existing>0)existing else db.insertOrThrow("playlists",null,
+                    ContentValues().apply{put("name",name);put("created_at",System.currentTimeMillis())})
+                val last=db.rawQuery("SELECT COALESCE(MAX(position),-1) FROM entries WHERE playlist_id=?",
+                    arrayOf(id.toString())).use{it.moveToFirst();it.getInt(0)}
+                var pos=last+1
+                for(uri in items){
+                    val values=ContentValues().apply{put("playlist_id",id);put("uri",uri);put("position",pos)}
+                    if(db.insertWithOnConflict("entries",null,values,SQLiteDatabase.CONFLICT_IGNORE)!=-1L)pos++
+                }
+            }
+            for(uri in fav)db.insertWithOnConflict("favorites",null,
+                ContentValues().apply{put("uri",uri)},SQLiteDatabase.CONFLICT_IGNORE)
+            db.setTransactionSuccessful()
+        } finally {db.endTransaction()}
+        return normalized.size
+    }
+
     @Synchronized fun importedTracks():List<AudioTrack> {
         val out=mutableListOf<AudioTrack>()
         readableDatabase.rawQuery("SELECT record FROM imported",null).use{ cursor ->

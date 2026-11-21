@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.net.Uri
 import android.widget.Toast
+import java.io.ByteArrayOutputStream
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -54,6 +55,49 @@ class MainActivity:ComponentActivity() {
         list.forEach{ uri -> try{if(repository.importDocument(uri)!=null)imported++}catch(_:Exception){} }
         refresh()
     }
+    private val createBackup=registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if(uri!=null)scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val stream=contentResolver.openOutputStream(uri,"w")
+                        ?:throw IllegalStateException("Cannot write backup")
+                    stream.use{it.write(db.exportBackup().toByteArray(Charsets.UTF_8))}
+                }
+                Toast.makeText(this@MainActivity,"تم حفظ نسخة القوائم",Toast.LENGTH_SHORT).show()
+            }catch(_:Exception){
+                Toast.makeText(this@MainActivity,"تعذر حفظ النسخة الاحتياطية",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    private val openBackup=registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if(uri!=null)scope.launch {
+            try {
+                val count=withContext(Dispatchers.IO){
+                    val stream=contentResolver.openInputStream(uri)
+                        ?:throw IllegalStateException("Cannot read backup")
+                    val bytes=stream.use{input ->
+                        val output=ByteArrayOutputStream()
+                        val block=ByteArray(8192)
+                        var total=0
+                        while(true){
+                            val n=input.read(block)
+                            if(n<0)break
+                            total+=n
+                            require(total<=2_000_000){"File too large"}
+                            output.write(block,0,n)
+                        }
+                        output.toByteArray()
+                    }
+                    db.restoreBackup(String(bytes,Charsets.UTF_8))
+                }
+                refreshCounter++
+                Toast.makeText(this@MainActivity,"تم استيراد $count قائمة",Toast.LENGTH_SHORT).show()
+            }catch(_:Exception){
+                Toast.makeText(this@MainActivity,"ملف النسخة غير صالح أو تعذر استيراده",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private val listener=object:ServiceConnection {
         override fun onServiceConnected(name:ComponentName?,binder:android.os.IBinder?){
             musicService=(binder as? MusicService.LocalBinder)?.service
@@ -107,6 +151,8 @@ class MainActivity:ComponentActivity() {
                         }
                     },
                     onShare={shareTracks(it)},
+                    onExport={createBackup.launch("ProTechMusic_backup.json")},
+                    onImport={openBackup.launch(arrayOf("application/json","text/plain"))},
                     onChanged={refreshCounter++}
                 )
             }
@@ -177,17 +223,20 @@ private fun MusicApp(
     service:MusicService?,db:MusicStore,revision:Int,
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
-    onShare:(List<AudioTrack>)->Unit,onChanged:()->Unit
+    onShare:(List<AudioTrack>)->Unit,onExport:()->Unit,onImport:()->Unit,onChanged:()->Unit
 ){
     var tab by remember{mutableStateOf("all")}
     var source by remember{mutableStateOf("All")}
     var folder by remember{mutableStateOf("")}
+    var artist by remember{mutableStateOf("")}
+    var album by remember{mutableStateOf("")}
     var playlist by remember{mutableLongStateOf(-1L)}
     var search by remember{mutableStateOf("")}
     var adding by remember{mutableStateOf<List<AudioTrack>?>(null)}
     var creating by remember{mutableStateOf(false)}
     var playlistName by remember{mutableStateOf("")}
     var playlistForEdit by remember{mutableStateOf(-1L)}
+    var confirmPlaylistDelete by remember{mutableStateOf(false)}
     var selection by remember{mutableStateOf(false)}
     val selected= remember{mutableStateListOf<String>()}
     var showPlayer by remember{mutableStateOf(false)}
@@ -198,17 +247,33 @@ private fun MusicApp(
     val sources=songs.groupBy{it.source}
     val sourceLabels=sourceOrder+(sources.keys-sourceOrder.toSet()).sorted()
     val folders=remember(songs){songs.map{it.folder}.filter{it.isNotBlank()}.distinct().sorted()}
+    val artists=remember(songs){songs.map{it.artist.ifBlank{"غير معروف"}}.distinct().sorted()}
+    val albums=remember(songs){songs.map{it.album.ifBlank{"غير معروف"}}.distinct().sorted()}
     val byUri=remember(songs){songs.associateBy{it.uri}}
-    val filtered=remember(songs,tab,source,folder,playlistUris,favorites,search) {
+    val filtered=remember(songs,tab,source,folder,artist,album,playlistUris,favorites,search) {
         val base= when(tab) {
             "source" -> songs.filter{it.source==source}
             "playlist" -> playlistUris.mapNotNull{byUri[it]}
             "favorites" -> songs.filter{favorites.contains(it.uri)}
             "folder" -> songs.filter{it.folder==folder}
+            "artist" -> songs.filter{it.artist.ifBlank{"غير معروف"}==artist}
+            "album" -> songs.filter{it.album.ifBlank{"غير معروف"}==album}
             else -> songs
         }
         base.filter{it.title.contains(search,true) || it.artist.contains(search,true) ||
             it.album.contains(search,true)||it.folder.contains(search,true)}
+    }
+    if(confirmPlaylistDelete){
+        AlertDialog(
+            onDismissRequest={confirmPlaylistDelete=false},
+            title={Text("تأكيد حذف القائمة")},
+            text={Text("سيتم حذف قائمة التشغيل فقط، ولن تُحذف الملفات الصوتية الأصلية.")},
+            confirmButton={TextButton(onClick={
+                if(playlist>=0L){db.deletePlaylist(playlist);tab="playlists";onChanged()}
+                confirmPlaylistDelete=false
+            }){Text("حذف القائمة")}},
+            dismissButton={TextButton(onClick={confirmPlaylistDelete=false}){Text("إلغاء")}}
+        )
     }
     if(creating){
         AlertDialog(onDismissRequest={creating=false},title={Text(if(playlistForEdit>=0)"تعديل اسم القائمة" else "قائمة تشغيل جديدة")},
@@ -265,7 +330,8 @@ private fun MusicApp(
                         Triple("effects","الصوت","◉")).forEach{item->
                         NavigationBarItem(selected=(tab==item.first)||
                                 (tab=="playlist"&&item.first=="playlists")||
-                                ((tab=="source"||tab=="folders"||tab=="folder")&&item.first=="sources"),
+                                ((tab=="source"||tab=="folders"||tab=="folder"||
+                                    tab=="artists"||tab=="artist"||tab=="albums"||tab=="album")&&item.first=="sources"),
                             onClick={tab=item.first;search="";selection=false;selected.clear();showPlayer=false},
                             icon={Text(item.third)},label={Text(item.second)},alwaysShowLabel=true)
                     }
@@ -287,13 +353,16 @@ private fun MusicApp(
             }
             if(error.isNotBlank())Text(error,color=Color(0xFFFFA3A3))
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth(),color=aqua)
-            if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" || tab=="folder"){
+            if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" ||
+                tab=="folder" || tab=="artists" || tab=="artist" || tab=="albums" || tab=="album"){
                 Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
                     AssistChip(onClick=onPick,label={Text("+ استيراد")})
                     AssistChip(onClick={tab="all"},label={Text("جميع الصوتيات (${songs.size})")})
                     AssistChip(onClick={tab="sources"},label={Text("حسب التطبيق")})
                     AssistChip(onClick={tab="folders"},label={Text("حسب المجلد")})
+                    AssistChip(onClick={tab="artists"},label={Text("الفنانون")})
+                    AssistChip(onClick={tab="albums"},label={Text("الألبومات")})
                     AssistChip(onClick={selection=!selection;selected.clear()},label={Text(if(selection)"إلغاء التحديد" else "تحديد متعدد")})
                 }
                 if(tab=="source"){
@@ -306,6 +375,11 @@ private fun MusicApp(
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
                     Text("قوائم التشغيل المخصصة",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                     Button(onClick={playlistName="";playlistForEdit=-1;adding=null;creating=true}){Text("+ إنشاء")}
+                }
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp),
+                    modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    OutlinedButton(onClick=onExport){Text("تصدير نسخة احتياطية")}
+                    OutlinedButton(onClick=onImport){Text("استيراد نسخة")}
                 }
                 LazyColumn {
                     items(playlists,key={it.id}){p->
@@ -340,6 +414,27 @@ private fun MusicApp(
                         HorizontalDivider(color=Color(0xFF333554))
                     }
                 }
+            } else if(tab=="artists" || tab=="albums"){
+                val isArtist=tab=="artists"
+                val names=if(isArtist)artists else albums
+                Text(if(isArtist)"الفنانون" else "الألبومات",
+                    style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                LazyColumn{
+                    items(names){name->
+                        val count=if(isArtist)songs.count{it.artist.ifBlank{"غير معروف"}==name}
+                            else songs.count{it.album.ifBlank{"غير معروف"}==name}
+                        ListItem(
+                            headlineContent={Text(name,fontWeight=FontWeight.SemiBold)},
+                            supportingContent={Text("$count مقطع")},
+                            leadingContent={Text(if(isArtist)"♩" else "▤",color=aqua)},
+                            modifier=Modifier.clickable{
+                                if(isArtist){artist=name;tab="artist"}
+                                else {album=name;tab="album"}
+                            }
+                        )
+                        HorizontalDivider(color=Color(0xFF333554))
+                    }
+                }
             } else if(tab=="folders"){
                 Text("المجلدات (${folders.size})",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)
                 LazyColumn {
@@ -363,7 +458,7 @@ private fun MusicApp(
                                 Text("مشاركة القائمة")
                             }
                             TextButton(onClick={playlistName=p?.name.orEmpty();playlistForEdit=playlist;creating=true}){Text("تعديل")}
-                            TextButton(onClick={db.deletePlaylist(playlist);tab="playlists";onChanged()}){Text("حذف")}
+                            TextButton(onClick={confirmPlaylistDelete=true}){Text("حذف")}
                         }
                     }
                 } else if(tab=="favorites"){
@@ -372,6 +467,10 @@ private fun MusicApp(
                     Text("المصدر: $source (${filtered.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="folder"){
                     Text("المجلد: $folder",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                } else if(tab=="artist"){
+                    Text("الفنان: $artist",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                } else if(tab=="album"){
+                    Text("الألبوم: $album",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else Text("كل الصوتيات (${songs.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 OutlinedTextField(value=search,onValueChange={search=it},
                     label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,

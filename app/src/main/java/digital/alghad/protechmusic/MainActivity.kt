@@ -347,6 +347,7 @@ private fun MusicApp(
     var search by remember{mutableStateOf("")}
     var searchSort by remember{mutableStateOf(TrackSearchEngine.Order.ORIGINAL)}
     var showSortMenu by remember{mutableStateOf(false)}
+    var visibleLimit by remember(tab,search,searchSort,smartFilter,source,folder,artist,album,playlist,revision){ mutableIntStateOf(200) }
     var adding by remember{mutableStateOf<List<AudioTrack>?>(null)}
     var creating by remember{mutableStateOf(false)}
     var playlistName by remember{mutableStateOf("")}
@@ -781,7 +782,7 @@ private fun MusicApp(
                     }
                 }
                 LazyColumn(Modifier.fillMaxSize()){
-                    items(filtered,key={it.uri}){track->
+                    items(filtered.take(visibleLimit),key={it.uri}){track->
                         val isSelected=selected.contains(track.uri)
                         TrackRow(track=track,selected=isSelected,multiselect=selection,
                             inPlaylist=tab=="playlist",favorite=favorites.contains(track.uri),
@@ -805,6 +806,17 @@ private fun MusicApp(
                                 }
                             else null)
                         HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
+                    }
+                    if(visibleLimit<filtered.size) item(key="more-results") {
+                        Column(Modifier.fillMaxWidth().padding(vertical=12.dp),
+                            horizontalAlignment=Alignment.CenterHorizontally){
+                            Text("عرض ${minOf(visibleLimit,filtered.size)} من ${filtered.size}",
+                                color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+                            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                                OutlinedButton(onClick={visibleLimit=(visibleLimit+200).coerceAtMost(filtered.size)}){Text("عرض المزيد")}
+                                TextButton(onClick={visibleLimit=filtered.size}){Text("عرض الكل")}
+                            }
+                        }
                     }
                 }
             }

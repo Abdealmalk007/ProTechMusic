@@ -1,0 +1,41 @@
+{
+  "project": "ProTech Music",
+  "recorded_on": "2026-11-21",
+  "version": "0.3.8",
+  "state": "DEBUG_TESTED_NOT_RELEASE_READY",
+  "official_progress_percent": 36,
+  "original_roadmap_completed_tasks": 9,
+  "closure_plan": "docs/RELEASE_CLOSURE_2_PHASES_15_STEPS_2026-11-21.md",
+  "closure_status": "docs/RELEASE_CLOSURE_PROGRESS.json",
+  "closure_phase_F_percent": 33.3,
+  "closure_phase_R_percent": 0,
+  "last_completed_step": "F04",
+  "last_completed_roadmap_task": "10",
+  "test_report": "docs/QA_F04_SEARCH_PAGING_V038_2026-11-21.md",
+  "previous_test_report": "docs/QA_V035_SMARTPLAYLISTS_2026-11-21.md",
+  "gradle_build_log": "docs/build_v038_final.log",
+  "unit_tests": "36/36 PASS",
+  "test_10k_synthetic_tracks_seconds": 0.196,
+  "debug_apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.8_DEBUG.apk",
+  "debug_sha256": "DB1DBDE574FD563DFB3247B4EA954346D08037F4F1260FB4D8E3535F2255EF7E",
+  "preexisting_safe_git_checkpoint": "f36cda6",
+  "preexisting_checkpoint_archive": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_Source_f36cda6.zip",
+  "recent_features": [
+    "Arabic normalized tokenized search",
+    "Sorted library and playlists with original order preserved by default",
+    "LazyColumn and 200 item page UI Show More/Show All",
+    "PortableBackupCodec JSON v2 and safe unique metadata matching with 7 resolver unit tests"
+  ],
+  "next_step": "F05 — Verify WhatsApp, Downloads, Recordings, Telegram, and SAF indexing on Android15 QA emulator",
+  "next_open_task": "F10 — Verify JSON v2 export/import using actual DocumentsUI, old backup fallback, missing/ambiguous reporting",
+  "qa_avd": "ProTechMusicQA35_211126 isolated new AVD; may not be fully booted yet",
+  "restrictions": [
+    "Never delete user media to test; only generated synthetic fixtures",
+    "Do not claim Android version matrix or real phone QA complete",
+    "Do not publish DEBUG APK as final stable on GitHub or website",
+    "Portability code has unit tests; full Android SAF DocumentsUI roundtrip remains open",
+    "On-device 200+ page UI remains pending F14 stress evidence"
+  ],
+  "git_verification": "Will be recorded after committing current result",
+  "resume_instruction": "Read docs/PROGRESS.json + docs/RELEASE_CLOSURE_PROGRESS.json and docs/HANDOFF_V12.json before any work. No plan recreation. Complete next independent task with real evidence. Store QA report, SHA256, git commit. Keep official percentage evidence-based."
+}

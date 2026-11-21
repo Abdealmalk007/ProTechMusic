@@ -1,0 +1,257 @@
+{
+    "schema_version":  1,
+    "project":  "ProTech Music",
+    "platform":  "Android",
+    "created_on":  "2026-11-21",
+    "roadmap":  "docs/ROADMAP_PROTECH_MUSIC_V1_2026-11-21.md",
+    "implementation_progress_percent":  12,
+    "brand_icon_concept":  "CREATED_IN_CHAT_NOT_YET_IMPORTED_TO_PROJECT",
+    "status":  "IN_PROGRESS_NOT_RELEASE_READY",
+    "next_task_id":  "11",
+    "tasks":  [
+                  {
+                      "task_id":  "01",
+                      "phase":  "A",
+                      "weight_percent":  4,
+                      "status":  "PASS",
+                      "evidence_path":  "docs/EXECUTION_PLAN_V2_2026-11-21.md",
+                      "completed_at":  "2026-11-21",
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "02",
+                      "phase":  "A",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "03",
+                      "phase":  "A",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "04",
+                      "phase":  "A",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "05",
+                      "phase":  "A",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "06",
+                      "phase":  "B",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "07",
+                      "phase":  "B",
+                      "weight_percent":  4,
+                      "status":  "PASS",
+                      "evidence_path":  "qa/protech_v2.png",
+                      "completed_at":  "2026-11-21",
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "08",
+                      "phase":  "B",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "09",
+                      "phase":  "B",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "10",
+                      "phase":  "B",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "11",
+                      "phase":  "C",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "12",
+                      "phase":  "C",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "13",
+                      "phase":  "C",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "14",
+                      "phase":  "C",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "15",
+                      "phase":  "C",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "16",
+                      "phase":  "D",
+                      "weight_percent":  4,
+                      "status":  "PASS",
+                      "evidence_path":  "docs/QA_EVIDENCE_2026-11-21.md",
+                      "completed_at":  "2026-11-21",
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "17",
+                      "phase":  "D",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "18",
+                      "phase":  "D",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "19",
+                      "phase":  "D",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "20",
+                      "phase":  "D",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "21",
+                      "phase":  "E",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "22",
+                      "phase":  "E",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "23",
+                      "phase":  "E",
+                      "weight_percent":  4,
+                      "status":  "IN_PROGRESS",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "24",
+                      "phase":  "E",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  },
+                  {
+                      "task_id":  "25",
+                      "phase":  "E",
+                      "weight_percent":  4,
+                      "status":  "PLANNED",
+                      "evidence_path":  null,
+                      "completed_at":  null,
+                      "blocker":  null
+                  }
+              ],
+    "phase_execution":  [
+                            {
+                                "phase":  1,
+                                "status":  "IN_PROGRESS",
+                                "notes":  "Core UI/indexing/playlists working; incomplete migration/export/polish"
+                            },
+                            {
+                                "phase":  2,
+                                "status":  "IN_PROGRESS",
+                                "notes":  "ExoPlayer and effects built, physical device verification pending"
+                            },
+                            {
+                                "phase":  3,
+                                "status":  "BLOCKED",
+                                "notes":  "Only Android15 emulator QA completed; final release gates pending"
+                            }
+                        ],
+    "qa_report":  "docs/QA_EVIDENCE_2026-11-21.md",
+    "latest_debug_apk_sha256":  "1EEE27492F88B8795E7F4D018E62E7E28F32C2B3308B410BCC5D27377D015E5E"
+}

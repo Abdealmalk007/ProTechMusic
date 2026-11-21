@@ -1,0 +1,37 @@
+﻿{
+    "project":  "ProTech Music",
+    "version":  "0.3.2",
+    "status":  "DEBUG_QA_NOT_RELEASE_READY",
+    "baseline_progress_percent":  24,
+    "layout_qa":  {
+                      "tested_configs":  [
+                                             {
+                                                 "widthDp":  320,
+                                                 "navigation":  "gesture",
+                                                 "result":  "PASS"
+                                             },
+                                             {
+                                                 "widthDp":  411,
+                                                 "navigation":  "three-button",
+                                                 "result":  "PASS"
+                                             }
+                                         ],
+                      "bottom_insets":  "WindowInsets.navigationBars",
+                      "control_minimum_dp":  48,
+                      "mini_player":  "compact",
+                      "expanded_player":  "ModalBottomSheet",
+                      "dark_sheet_text_contrast":  "PASS",
+                      "evidence":  "docs/QA_UI_V032_2026-11-21.md"
+                  },
+    "qa_build_log":  "docs/build_layout_v032_final.log",
+    "apk_local_path":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.2_DEBUG.apk",
+    "next_gate":  [
+                      "UI landscape,font scaling,TalkBack,multi-Android version QA",
+                      "M3U/M3U8 and stale Uri resilience",
+                      "hardware Bluetooth and volume boost validation",
+                      "production signing and repository/website publish"
+                  ],
+    "notes":  "One emulator tested at 2 widths and two navigation systems. UI task remains IN_PROGRESS until full accessibility and bilingual acceptance.",
+    "latest_sha256":  "46D39DE43773321C2F23E885CB587689034E4CB4FA356FA522604C790E15084B",
+    "latest_apk_bytes":  11990331
+}

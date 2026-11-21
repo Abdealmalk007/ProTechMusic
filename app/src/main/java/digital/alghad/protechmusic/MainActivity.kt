@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
@@ -307,6 +310,22 @@ private fun MusicApp(
                 }
             },confirmButton={TextButton(onClick={adding=null}){Text("إغلاق")}})
     }
+    if(showPlayer && MusicRuntime.nowPlaying != null){
+        ModalBottomSheet(
+            onDismissRequest={showPlayer=false},
+            containerColor=Color(0xFF242647),
+            contentColor=Color.White
+        ){
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom=12.dp)){
+                PlayerBar(
+                    service=service,
+                    expanded=true,
+                    onExpand={showPlayer=false},
+                    onShare={onShare(listOf(it))}
+                )
+            }
+        }
+    }
     Scaffold(
         containerColor=deepBlue,
         topBar={CenterAlignedTopAppBar(
@@ -320,11 +339,19 @@ private fun MusicApp(
             }
         )},
         bottomBar={
-            Column {
+            Column(
+                Modifier.fillMaxWidth()
+                    .background(Color(0xFF202243))
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
                 if(MusicRuntime.nowPlaying!=null){
-                    PlayerBar(service=service,expanded=showPlayer,onExpand={showPlayer=!showPlayer},onShare={onShare(listOf(it))})
+                    PlayerBar(service=service,expanded=false,onExpand={showPlayer=true},onShare={onShare(listOf(it))})
                 }
-                NavigationBar(containerColor=Color(0xFF202243)) {
+                NavigationBar(
+                    modifier=Modifier.fillMaxWidth(),
+                    containerColor=Color(0xFF202243),
+                    windowInsets=WindowInsets(0,0,0,0)
+                ) {
                     listOf(Triple("all","الكل","♫"),Triple("sources","المصادر","▦"),
                         Triple("playlists","قوائمي","≡"),Triple("favorites","المفضلة","♥"),
                         Triple("effects","الصوت","◉")).forEach{item->
@@ -333,9 +360,12 @@ private fun MusicApp(
                                 ((tab=="source"||tab=="folders"||tab=="folder"||
                                     tab=="artists"||tab=="artist"||tab=="albums"||tab=="album")&&item.first=="sources"),
                             onClick={tab=item.first;search="";selection=false;selected.clear();showPlayer=false},
-                            icon={Text(item.third)},label={Text(item.second)},alwaysShowLabel=true)
+                            icon={Text(item.third,fontSize=20.sp,maxLines=1)},
+                            label={Text(item.second,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)},
+                            alwaysShowLabel=true)
                     }
                 }
+                Spacer(Modifier.height(8.dp))
             }
         }
     ){inner ->
@@ -373,7 +403,8 @@ private fun MusicApp(
             }
             if(tab=="playlists"){
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
-                    Text("قوائم التشغيل المخصصة",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Text("قوائم التشغيل المخصصة",modifier=Modifier.weight(1f),maxLines=1,
+                        overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                     Button(onClick={playlistName="";playlistForEdit=-1;adding=null;creating=true}){Text("+ إنشاء")}
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp),
@@ -476,7 +507,8 @@ private fun MusicApp(
                     label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,
                     modifier=Modifier.fillMaxWidth().padding(vertical=6.dp))
                 if(selection && selected.isNotEmpty()){
-                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                         Button(onClick={adding=selected.mapNotNull{byUri[it]}}){
                             Text("إضافة ${selected.size} إلى قائمة")
                         }
@@ -515,34 +547,67 @@ private fun MusicApp(
 private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPlaylist:Boolean,
     favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
     onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit){
-    Row(Modifier.fillMaxWidth().heightIn(min=66.dp).padding(vertical=4.dp),
-        verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
-        if(multiselect)Checkbox(checked=selected,onCheckedChange={onSelect()})
-        else Box(Modifier.size(45.dp).background(Brush.linearGradient(listOf(purple,aqua)),
-            RoundedCornerShape(12.dp)).clickable(onClick=onPlay),
-            contentAlignment=Alignment.Center){Text("▶",color=deepBlue,fontWeight=FontWeight.Bold)}
-        Column(Modifier.weight(1f).clickable(onClick=if(multiselect)onSelect else onPlay)){
-            Text(track.title,maxLines=1,overflow=TextOverflow.Ellipsis,fontWeight=FontWeight.Medium)
-            Text((track.artist.takeIf{it.isNotBlank()}?.let{"$it • "} ?: "")+
-                "${track.source} • ${readableTime(track.durationMs)}",
+    var menuExpanded by remember(track.uri){mutableStateOf(false)}
+    Row(
+        Modifier.fillMaxWidth().heightIn(min=72.dp).padding(vertical=4.dp),
+        verticalAlignment=Alignment.CenterVertically,
+        horizontalArrangement=Arrangement.spacedBy(6.dp)
+    ){
+        if(multiselect){
+            Checkbox(checked=selected,onCheckedChange={onSelect()},modifier=Modifier.size(48.dp))
+        } else {
+            Box(
+                Modifier.size(48.dp)
+                    .background(Brush.linearGradient(listOf(purple,aqua)),RoundedCornerShape(12.dp))
+                    .clickable(onClick=onPlay)
+                    .semantics{contentDescription="تشغيل ${track.title}"},
+                contentAlignment=Alignment.Center
+            ){Text("▶",color=deepBlue,fontWeight=FontWeight.Bold)}
+        }
+        Column(
+            Modifier.weight(1f).heightIn(min=48.dp)
+                .clickable(onClick=if(multiselect)onSelect else onPlay),
+            verticalArrangement=Arrangement.Center
+        ){
+            Text(track.title,maxLines=1,overflow=TextOverflow.Ellipsis,fontWeight=FontWeight.SemiBold)
+            Text(
+                (track.artist.takeIf{it.isNotBlank()}?.let{"$it • "} ?: "")+
+                    "${track.source} • ${readableTime(track.durationMs)}",
                 maxLines=1,overflow=TextOverflow.Ellipsis,color=Color.LightGray,
-                style=MaterialTheme.typography.bodySmall)
+                style=MaterialTheme.typography.bodySmall
+            )
         }
-        IconButton(onClick=onFavorite,modifier=Modifier.size(32.dp)){
-            Text(if(favorite)"♥" else "♡",color=if(favorite)Color(0xFFFF659D) else Color.White)
-        }
-        IconButton(onClick=onAdd,modifier=Modifier.size(32.dp)){
-            Text("+",color=aqua,style=MaterialTheme.typography.titleLarge)
-        }
-        IconButton(onClick=onShare,modifier=Modifier.size(32.dp)){
-            Text("↗",color=aqua,style=MaterialTheme.typography.titleLarge)
-        }
-        if(inPlaylist){
-            Column {
-                Text("▲",modifier=Modifier.clickable(onClick=onUp),color=aqua)
-                Text("▼",modifier=Modifier.clickable(onClick=onDown),color=aqua)
+        IconButton(
+            onClick=onAdd,
+            modifier=Modifier.size(48.dp).semantics{contentDescription="إضافة ${track.title} إلى قائمة"}
+        ){Text("+",color=aqua,style=MaterialTheme.typography.headlineSmall)}
+        Box{
+            IconButton(
+                onClick={menuExpanded=true},
+                modifier=Modifier.size(48.dp).semantics{contentDescription="خيارات ${track.title}"}
+            ){Text("⋮",color=Color.White,fontSize=26.sp)}
+            DropdownMenu(
+                expanded=menuExpanded,
+                onDismissRequest={menuExpanded=false}
+            ){
+                DropdownMenuItem(
+                    text={Text(if(favorite)"إزالة من المفضلة" else "إضافة إلى المفضلة")},
+                    onClick={menuExpanded=false;onFavorite()}
+                )
+                DropdownMenuItem(
+                    text={Text("مشاركة المقطع")},
+                    onClick={menuExpanded=false;onShare()}
+                )
+                if(inPlaylist){
+                    HorizontalDivider()
+                    DropdownMenuItem(text={Text("تحريك لأعلى")},onClick={menuExpanded=false;onUp()})
+                    DropdownMenuItem(text={Text("تحريك لأسفل")},onClick={menuExpanded=false;onDown()})
+                    DropdownMenuItem(
+                        text={Text("إزالة من القائمة فقط",color=Color(0xFFFFB0B0))},
+                        onClick={menuExpanded=false;onRemove()}
+                    )
+                }
             }
-            Text("×",modifier=Modifier.clickable(onClick=onRemove),color=Color(0xFFFFB3B3))
         }
     }
 }
@@ -550,7 +615,7 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
 @Composable
 private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,onShare:(AudioTrack)->Unit){
     val track=MusicRuntime.nowPlaying ?:return
-    Surface(color=Color(0xFF2B2857),tonalElevation=5.dp){
+    Surface(color=Color(0xFF2B2857),contentColor=Color.White,tonalElevation=5.dp){
         Column(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp)){
             Row(verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f).clickable(onClick=onExpand)){
@@ -570,7 +635,8 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                     Text(readableTime(MusicRuntime.position),style=MaterialTheme.typography.labelSmall)
                     Text(readableTime(MusicRuntime.duration),style=MaterialTheme.typography.labelSmall)
                 }
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement=Arrangement.spacedBy(6.dp)){
                     TextButton(onClick={onShare(track)}){Text("مشاركة المقطع")}
                     TextButton(onClick={service?.changeShuffle()}){Text(if(MusicRuntime.shuffle)"خلط ✓" else "خلط")}
                     TextButton(onClick={service?.changeRepeat()}){Text(when(MusicRuntime.repeat){1->"تكرار 1";2->"تكرار الكل";else->"بدون تكرار"})}

@@ -84,6 +84,10 @@ class MusicService : Service() {
     }
     override fun onCreate() {
         super.onCreate()
+        MusicRuntime.boost=preferences.getInt("boost",0).coerceIn(0,100)
+        MusicRuntime.bass=preferences.getInt("bass",0).coerceIn(0,100)
+        MusicRuntime.equalizerEnabled=preferences.getBoolean("eq_enabled",false)
+        MusicRuntime.speed=AudioEffectMath.playbackSpeed(preferences.getFloat("speed",1f))
         val attrs=AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA).build()
         player=ExoPlayer.Builder(this).build().apply {
@@ -115,6 +119,7 @@ class MusicService : Service() {
                 }
             })
         }
+        player.playbackParameters=PlaybackParameters(MusicRuntime.speed)
         session=MediaSession(this,"ProTechMusic").apply{
             setCallback(object:MediaSession.Callback(){
                 override fun onPlay()=resume()
@@ -218,52 +223,95 @@ class MusicService : Service() {
         player.repeatMode=when(MusicRuntime.repeat){1->Player.REPEAT_MODE_ONE;2->Player.REPEAT_MODE_ALL;else->Player.REPEAT_MODE_OFF}
     }
     fun changeSpeed(speed:Float) {
-        val v=speed.coerceIn(.5f,2f)
+        val v=AudioEffectMath.playbackSpeed(speed)
         player.playbackParameters=PlaybackParameters(v)
         MusicRuntime.speed=v
+        preferences.edit().putFloat("speed",v).apply()
     }
     fun setSleep(minutes:Int) {
         sleepUntil=if(minutes<=0)0L else SystemClock.elapsedRealtime()+minutes*60_000L
     }
-    fun setBoost(amount:Int) {MusicRuntime.boost=amount.coerceIn(0,100);applyEffects()}
-    fun setBass(amount:Int) {MusicRuntime.bass=amount.coerceIn(0,100);applyEffects()}
-    fun enableEqualizer(enabled:Boolean) {MusicRuntime.equalizerEnabled=enabled;applyEffects();MusicRuntime.eqRevision++}
-    fun equalizerInfo():String = try {
-        val e=eq ?: return "غير مدعوم"
+    internal fun effectsSupport():AudioEffectsSupport=AudioEffectsSupport(
+        equalizer=try{eq?.hasControl()==true}catch(_:Exception){false},
+        bass=try{bassEffect?.hasControl()==true}catch(_:Exception){false},
+        loudness=try{loudness?.hasControl()==true}catch(_:Exception){false}
+    )
+    fun setBoost(amount:Int) {
+        if(!effectsSupport().loudness)return
+        MusicRuntime.boost=amount.coerceIn(0,100)
+        applyEffects()
+        preferences.edit().putInt("boost",MusicRuntime.boost).apply()
+    }
+    fun setBass(amount:Int) {
+        if(!effectsSupport().bass)return
+        MusicRuntime.bass=amount.coerceIn(0,100)
+        applyEffects()
+        preferences.edit().putInt("bass",MusicRuntime.bass).apply()
+    }
+    fun enableEqualizer(enabled:Boolean) {
+        if(!effectsSupport().equalizer){MusicRuntime.equalizerEnabled=false;MusicRuntime.eqRevision++;return}
+        MusicRuntime.equalizerEnabled=enabled
+        applyEffects()
+        preferences.edit().putBoolean("eq_enabled",enabled).apply()
+        MusicRuntime.eqRevision++
+    }
+    fun equalizerInfo():String {
+        return try {
+        val e=eq ?: return "غير مدعوم على هذا الجهاز"
+        if(!e.hasControl())return "غير مدعوم أو غير متاح حاليًا"
         "${e.numberOfBands} bands / ${e.numberOfPresets} presets"
     } catch (_:Exception){"غير مدعوم"}
+    }
     fun applyEqPreset(preset:Short) {
         try {
             val effect=eq ?:return
-            if(preset>=0 && preset<effect.numberOfPresets){effect.usePreset(preset);MusicRuntime.equalizerEnabled=true;applyEffects();MusicRuntime.eqRevision++}
+            if(!effectsSupport().equalizer)return
+            if(preset>=0 && preset<effect.numberOfPresets){
+                val window=AudioEffectMath.equalizerRange(effect.bandLevelRange[0].toInt(),effect.bandLevelRange[1].toInt())?:return
+                effect.usePreset(preset)
+                for(index in 0 until effect.numberOfBands.toInt()) {
+                    val band=index.toShort()
+                    effect.setBandLevel(band,AudioEffectMath.equalizerLevelMb(effect.getBandLevel(band).toInt(),window))
+                }
+                MusicRuntime.equalizerEnabled=true
+                applyEffects()
+                preferences.edit().putBoolean("eq_enabled",true).apply()
+                MusicRuntime.eqRevision++
+            }
         } catch (_:Exception){}
     }
-    fun eqPresets():List<String> = try{
+    fun eqPresets():List<String> {
+        return try{
         val effect=eq ?:return emptyList()
+        if(!effectsSupport().equalizer)return emptyList()
         (0 until effect.numberOfPresets).map{effect.getPresetName(it.toShort())}
     } catch (_:Exception){emptyList()}
-    fun eqBands():List<EqBandInfo> = try {
+    }
+    fun eqBands():List<EqBandInfo> {
+        return try {
         val e=eq ?: return emptyList()
+        if(!effectsSupport().equalizer)return emptyList()
         val range=e.bandLevelRange
-        val low=maxOf(range[0].toInt(),-600)
-        val high=minOf(range[1].toInt(),600)
+        val safe=AudioEffectMath.equalizerRange(range[0].toInt(),range[1].toInt())?:return emptyList()
+        val low=safe.first
+        val high=safe.last
         (0 until e.numberOfBands.toInt()).map { n ->
             val band=n.toShort()
             EqBandInfo(n,e.getCenterFreq(band)/1000,low,high,
                 e.getBandLevel(band).toInt().coerceIn(low,high))
         }
     } catch (_:Exception){emptyList()}
+    }
 
     fun setEqBand(index:Int,levelMb:Int){
         val e=eq ?: return
-        if(index !in 0 until e.numberOfBands.toInt())return
+        if(!effectsSupport().equalizer || index !in 0 until e.numberOfBands.toInt())return
         try {
-            val range=e.bandLevelRange
-            val lower=maxOf(range[0].toInt(),-600)
-            val upper=minOf(range[1].toInt(),600)
-            e.setBandLevel(index.toShort(),levelMb.coerceIn(lower,upper).toShort())
+            val safe=AudioEffectMath.equalizerRange(e.bandLevelRange[0].toInt(),e.bandLevelRange[1].toInt())?:return
+            e.setBandLevel(index.toShort(),AudioEffectMath.equalizerLevelMb(levelMb,safe))
             MusicRuntime.equalizerEnabled=true
             applyEffects()
+            preferences.edit().putBoolean("eq_enabled",true).apply()
             MusicRuntime.eqRevision++
         }catch (_:Exception){}
     }
@@ -281,9 +329,9 @@ class MusicService : Service() {
         MusicRuntime.eqRevision++
     }
     private fun applyEffects(){
-        try{eq?.enabled=MusicRuntime.equalizerEnabled}catch(_:Exception){}
-        try{bassEffect?.setStrength((MusicRuntime.bass*10).toShort());bassEffect?.enabled=MusicRuntime.bass>0}catch(_:Exception){}
-        try{loudness?.setTargetGain(MusicRuntime.boost*6);loudness?.enabled=MusicRuntime.boost>0}catch(_:Exception){}
+        try{eq?.enabled=(effectsSupport().equalizer && MusicRuntime.equalizerEnabled)}catch(_:Exception){}
+        try{bassEffect?.setStrength(AudioEffectMath.bassStrength(MusicRuntime.bass));bassEffect?.enabled=(effectsSupport().bass && MusicRuntime.bass>0)}catch(_:Exception){}
+        try{loudness?.setTargetGain(AudioEffectMath.loudnessGainMb(MusicRuntime.boost));loudness?.enabled=(effectsSupport().loudness && MusicRuntime.boost>0)}catch(_:Exception){}
     }
     private fun updateSession(){
         if(!::session.isInitialized || !::player.isInitialized)return

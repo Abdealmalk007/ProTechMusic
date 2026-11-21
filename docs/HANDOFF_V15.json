@@ -1,0 +1,56 @@
+{
+  "project": "ProTech Music",
+  "checkpoint": "HANDOFF_V15",
+  "date": "2026-11-21",
+  "app_version": "0.3.9",
+  "version_code": 12,
+  "state": "DEBUG_QA_ONLY_NOT_SIGNED_RELEASE",
+  "device": "DESKTOP-PM75RQM",
+  "android_emulator": "ProTechMusicQA35_211126 API35 isolated",
+  "overall_percent": 44,
+  "completed_original_tasks": 11,
+  "total_original_tasks": 25,
+  "phase_f_percent": 73.3,
+  "phase_f_completed_steps": 11,
+  "phase_f_total": 15,
+  "phase_r_percent": 0,
+  "phase_r_total": 15,
+  "completed_this_session": [
+    "F11",
+    "original task19"
+  ],
+  "features_implemented": [
+    "Android audio session effect support via hasControl() and disabled unavailable controls",
+    "loudness capped 600mB (+6dB requested max)",
+    "bass capped 1000 per-mille",
+    "EQ clamped to supported device range intersect ±600mB including presets",
+    "safe floating playback speed range 0.5..2.0, persisted",
+    "store and restore boost/bass/eq/speed settings"
+  ],
+  "test_evidence": "docs/QA_F11_SOUND_EFFECTS_V039_2026-11-21.md",
+  "tracked_evidence_dir": "docs/evidence/f11/",
+  "unit_tests": "44 PASS of 44, zero failed",
+  "build_log": "docs/build_v039_audioeffects_retry.log",
+  "debug_apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.9_DEBUG.apk",
+  "apk_sha256": "66075E5FF04F2197253A22A09615080F1FBD4596150DCEECA11F3DF3F315BD11",
+  "source_version": "git log -1; do not rely on any unrecorded commit hash",
+  "canonical_progress": "docs/PROGRESS.json",
+  "closure_progress": "docs/RELEASE_CLOSURE_PROGRESS.json",
+  "next_step": "F12",
+  "next_step_goal": "Test and implement artwork, local .lrc lyrics, notification/queue/audio focus with real Android evidence; original tasks17/20 remain open",
+  "pending": [
+    "F12 artwork/lyrics/audio focus/notification",
+    "F13 layout 320dp/411dp/RTL/LTR/landscape/gesture insets",
+    "F14 1k/10k/50k indexing and battery tests",
+    "F15 RC P0/P1 gate",
+    "R01-R15 real-device OS matrix, Bluetooth/headset/audio measurement, signature, GitHub and alghad.digital release"
+  ],
+  "limitations": [
+    "No acoustic gain or distortion measurement; only software cap tested",
+    "Unsupported audio effect on real device path not tested; fallback guards are implemented",
+    "Optional crossfade not implemented, pending proper performance proof",
+    "Android15 emulator-only F11; no final release, no public publication",
+    "Do not delete user media; synthetic emulator files only"
+  ],
+  "resume": "Read docs/PROGRESS.json, docs/RELEASE_CLOSURE_PROGRESS.json, docs/HANDOFF_V15.json and git status before next work. Never reset progress. Move to F12. Mark PASS only with evidence and update weighted original percentage. Inspect test evidence screenshots. Do not publish DEBUG as final."
+}

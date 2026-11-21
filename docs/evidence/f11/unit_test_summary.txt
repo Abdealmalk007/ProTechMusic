@@ -1,0 +1,7 @@
+﻿TEST-digital.alghad.protechmusic.AudioEffectMathTest.xml: 8 tests, 0 failed
+TEST-digital.alghad.protechmusic.BackupTrackResolverTest.xml: 7 tests, 0 failed
+TEST-digital.alghad.protechmusic.ListeningTrackerTest.xml: 8 tests, 0 failed
+TEST-digital.alghad.protechmusic.M3uCodecTest.xml: 7 tests, 0 failed
+TEST-digital.alghad.protechmusic.SourceClassifierTest.xml: 7 tests, 0 failed
+TEST-digital.alghad.protechmusic.TrackSearchEngineTest.xml: 7 tests, 0 failed
+TOTAL: 44 tests, 0 failed; Android15 on-device effect QA in docs/QA_F11_SOUND_EFFECTS_V039_2026-11-21.md

@@ -949,24 +949,26 @@ private fun EffectsPanel(service:MusicService?){
     var selectedPreset by remember{mutableStateOf("")}
     val presets=remember(service){service?.eqPresets().orEmpty()}
     val eqRevision=MusicRuntime.eqRevision
+    val support=remember(service,eqRevision){service?.effectsSupport()}
     val eqBands=remember(service,eqRevision){service?.eqBands().orEmpty()}
     LazyColumn(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(16.dp),
         contentPadding=PaddingValues(vertical=12.dp)){
         item{Text("مضخم الصوت والمؤثرات",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.headlineSmall,color=aqua)}
-        item{Text("زيادة الصوت تؤثر على تشغيل التطبيق فقط. تجنب المستويات العالية والسماعات القريبة من الأذن.",color=Color(0xFFFFCF91))}
+        item{Text("المؤثرات تعمل على جلسة هذا التطبيق فقط. تضخيم الصوت قد يسبب تشويهًا أو ضررًا للسمع؛ ابدأ بمستوى منخفض.",color=Color(0xFFFFCF91))}
+        item{Text(if(service==null)"شغّل مقطعًا لتهيئة جلسة الصوت" else "دعم هذا الجهاز: مضخم ${if(support?.loudness==true)"✓" else "غير متاح"} • Bass ${if(support?.bass==true)"✓" else "غير متاح"} • EQ ${if(support?.equalizer==true)"✓" else "غير متاح"}",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)}
         item {
             Text("مضخم الصوت / Loudness (${MusicRuntime.boost}%)")
-            Slider(value=MusicRuntime.boost.toFloat(),onValueChange={service?.setBoost(it.toInt())},valueRange=0f..100f)
+            Slider(value=MusicRuntime.boost.toFloat(),onValueChange={service?.setBoost(it.toInt())},valueRange=0f..100f,enabled=support?.loudness==true)
             Text("الحد البرمجي: +6 dB؛ قد يكون التأثير غير متاح على بعض الأجهزة.",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
         }
         item {
             Text("تعزيز الجهير Bass Boost (${MusicRuntime.bass}%)")
-            Slider(value=MusicRuntime.bass.toFloat(),onValueChange={service?.setBass(it.toInt())},valueRange=0f..100f)
+            Slider(value=MusicRuntime.bass.toFloat(),onValueChange={service?.setBass(it.toInt())},valueRange=0f..100f,enabled=support?.bass==true)
         }
         item {
             Row(verticalAlignment=Alignment.CenterVertically){
                 Text("Equalizer (حسب دعم الجهاز)",modifier=Modifier.weight(1f))
-                Switch(checked=MusicRuntime.equalizerEnabled,onCheckedChange={service?.enableEqualizer(it)})
+                Switch(checked=support?.equalizer==true && MusicRuntime.equalizerEnabled,onCheckedChange={service?.enableEqualizer(it)},enabled=support?.equalizer==true)
             }
             Text(service?.equalizerInfo() ?: "المؤثرات بانتظار اتصال المحرك",style=MaterialTheme.typography.bodySmall)
         }
@@ -1008,6 +1010,6 @@ private fun EffectsPanel(service:MusicService?){
                 }
             }
         }
-        item{ Text("يعمل محرك Equalizer وBassBoost وLoudnessEnhancer بالجلسة الصوتية الخاصة بالمشغل، ولا يغيّر مستوى صوت تطبيقات أخرى.",color=Color.LightGray)}
+        item{ Text("مضخم الصوت بحد أقصى +6 dB، ومجال EQ بحد ±6 dB أو أقل إذا فرض الجهاز ذلك. الدعم والتأثير الفعلي يختلفان باختلاف الهاتف والخرج الصوتي.",color=Color.LightGray)}
     }
 }

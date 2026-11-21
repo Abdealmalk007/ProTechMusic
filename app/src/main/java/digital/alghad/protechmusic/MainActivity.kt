@@ -73,10 +73,11 @@ class MainActivity:ComponentActivity() {
     private val createBackup=registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if(uri!=null)scope.launch {
             try {
+                val library=songs.toList()
                 withContext(Dispatchers.IO) {
                     val stream=contentResolver.openOutputStream(uri,"w")
                         ?:throw IllegalStateException("Cannot write backup")
-                    stream.use{it.write(db.exportBackup().toByteArray(Charsets.UTF_8))}
+                    stream.use{it.write(PortableBackupCodec.export(db.exportBackup(),library).toByteArray(Charsets.UTF_8))}
                 }
                 Toast.makeText(this@MainActivity,"تم حفظ نسخة القوائم",Toast.LENGTH_SHORT).show()
             }catch(_:Exception){
@@ -87,7 +88,8 @@ class MainActivity:ComponentActivity() {
     private val openBackup=registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if(uri!=null)scope.launch {
             try {
-                val count=withContext(Dispatchers.IO){
+                val library=songs.toList()
+                val report=withContext(Dispatchers.IO){
                     val stream=contentResolver.openInputStream(uri)
                         ?:throw IllegalStateException("Cannot read backup")
                     val bytes=stream.use{input ->
@@ -103,10 +105,16 @@ class MainActivity:ComponentActivity() {
                         }
                         output.toByteArray()
                     }
-                    db.restoreBackup(String(bytes,Charsets.UTF_8))
+                    val (normalized,details)=PortableBackupCodec.translateForRestore(
+                        String(bytes,Charsets.UTF_8),library)
+                    db.restoreBackup(normalized)
+                    details
                 }
                 refreshCounter++
-                Toast.makeText(this@MainActivity,"تم استيراد $count قائمة",Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity,
+                    "تمت استعادة "+report.playlists+" قائمة، "+report.resolved+
+                    " مقطع؛ غير موجود: "+report.missing+"؛ متشابه: "+report.ambiguous,
+                    Toast.LENGTH_LONG).show()
             }catch(_:Exception){
                 Toast.makeText(this@MainActivity,"ملف النسخة غير صالح أو تعذر استيراده",Toast.LENGTH_LONG).show()
             }
@@ -337,6 +345,8 @@ private fun MusicApp(
     var album by remember{mutableStateOf("")}
     var playlist by remember{mutableLongStateOf(-1L)}
     var search by remember{mutableStateOf("")}
+    var searchSort by remember{mutableStateOf(TrackSearchEngine.Order.ORIGINAL)}
+    var showSortMenu by remember{mutableStateOf(false)}
     var adding by remember{mutableStateOf<List<AudioTrack>?>(null)}
     var creating by remember{mutableStateOf(false)}
     var playlistName by remember{mutableStateOf("")}
@@ -352,8 +362,8 @@ private fun MusicApp(
     val playStats=remember(revision,statsRevision){db.playStats()}
     val playlistUris=remember(revision,playlist){if(playlist>=0)db.playlistTracks(playlist) else emptyList()}
     val sourceOrder=listOf("WhatsApp","Downloads","Recordings","Telegram","Bluetooth","Music","Podcasts","Audiobooks","System sounds","Imported","Other")
-    val sources=songs.groupBy{it.source}
-    val sourceLabels=sourceOrder+(sources.keys-sourceOrder.toSet()).sorted()
+    val sources=remember(songs){songs.groupBy{it.source}}
+    val sourceLabels=remember(sources){sourceOrder+(sources.keys-sourceOrder.toSet()).sorted()}
     val folders=remember(songs){songs.map{it.folder}.filter{it.isNotBlank()}.distinct().sorted()}
     val artists=remember(songs){songs.map{it.artist.ifBlank{"غير معروف"}}.distinct().sorted()}
     val albums=remember(songs){songs.map{it.album.ifBlank{"غير معروف"}}.distinct().sorted()}
@@ -361,7 +371,7 @@ private fun MusicApp(
     val queueRevision=MusicRuntime.queueRevision
     val queuedTracks=remember(service,queueRevision){service?.queueSnapshot().orEmpty()}
     val queueCurrentIndex=service?.queueCurrentIndex() ?: -1
-    val filtered=remember(songs,tab,smartFilter,playStats,source,folder,artist,album,playlistUris,favorites,search) {
+    val filtered=remember(songs,tab,smartFilter,playStats,source,folder,artist,album,playlistUris,favorites,search,searchSort) {
         val base= when(tab) {
             "source" -> songs.filter{it.source==source}
             "playlist" -> playlistUris.mapNotNull{byUri[it]}
@@ -379,8 +389,7 @@ private fun MusicApp(
             "album" -> songs.filter{it.album.ifBlank{"غير معروف"}==album}
             else -> songs
         }
-        base.filter{it.title.contains(search,true) || it.artist.contains(search,true) ||
-            it.album.contains(search,true)||it.folder.contains(search,true)}
+        TrackSearchEngine.search(base,search,searchSort)
     }
     if(importReport!=null){
         AlertDialog(onDismissRequest=onDismissReport,title={Text("نتيجة استيراد M3U8")},
@@ -715,9 +724,33 @@ private fun MusicApp(
                 } else if(tab=="smart"){
                     Text("النتائج: "+filtered.size,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else Text("كل الصوتيات (${songs.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                OutlinedTextField(value=search,onValueChange={search=it},
-                    label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,
-                    modifier=Modifier.fillMaxWidth().padding(vertical=6.dp))
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),
+                    verticalAlignment=Alignment.CenterVertically){
+                    OutlinedTextField(value=search,onValueChange={search=it},
+                        label={Text("بحث في الصوتيات",maxLines=1)},singleLine=true,
+                        modifier=Modifier.weight(1f).padding(vertical=6.dp))
+                    Box{
+                        OutlinedButton(onClick={showSortMenu=true},modifier=Modifier.heightIn(min=48.dp)){
+                            Text("فرز")
+                        }
+                        DropdownMenu(expanded=showSortMenu,onDismissRequest={showSortMenu=false}){
+                            listOf(
+                                TrackSearchEngine.Order.ORIGINAL to "ترتيب القائمة",
+                                TrackSearchEngine.Order.TITLE to "اسم المقطع",
+                                TrackSearchEngine.Order.ARTIST to "الفنان",
+                                TrackSearchEngine.Order.SOURCE to "المصدر",
+                                TrackSearchEngine.Order.RECENTLY_ADDED to "الأحدث إضافة",
+                                TrackSearchEngine.Order.DURATION to "المدة (الأطول)",
+                                TrackSearchEngine.Order.SIZE to "الحجم (الأكبر)"
+                            ).forEach{ (value,label) ->
+                                DropdownMenuItem(text={Text(label)},onClick={
+                                    searchSort=value
+                                    showSortMenu=false
+                                })
+                            }
+                        }
+                    }
+                }
                 if(selection){
                     val chosen=selected.mapNotNull{byUri[it]}
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),

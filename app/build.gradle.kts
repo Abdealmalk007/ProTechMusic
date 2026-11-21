@@ -6,8 +6,8 @@ android {
     applicationId = "digital.alghad.protechmusic"
     minSdk = 26
     targetSdk = 35
-    versionCode = 8
-    versionName = "0.3.5"
+    versionCode = 10
+    versionName = "0.3.7"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildTypes { release { isMinifyEnabled = false } }

@@ -8,17 +8,49 @@ import org.json.JSONObject
 import org.json.JSONArray
 
 data class Playlist(val id:Long,val name:String,val count:Int)
+data class PlayInfo(val count:Int,val lastPlayedAt:Long)
 
-class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db",null,1) {
+class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db",null,2) {
     override fun onCreate(db:SQLiteDatabase) {
         db.execSQL("CREATE TABLE playlists (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL COLLATE NOCASE UNIQUE,created_at INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE entries (playlist_id INTEGER NOT NULL,uri TEXT NOT NULL,position INTEGER NOT NULL,PRIMARY KEY(playlist_id,uri))")
         db.execSQL("CREATE INDEX idx_entries_position ON entries(playlist_id,position)")
         db.execSQL("CREATE TABLE favorites (uri TEXT PRIMARY KEY)")
         db.execSQL("CREATE TABLE imported (uri TEXT PRIMARY KEY,record TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE play_stats (uri TEXT PRIMARY KEY,play_count INTEGER NOT NULL DEFAULT 0,last_played INTEGER NOT NULL DEFAULT 0)")
+        db.execSQL("CREATE INDEX idx_play_stats_recent ON play_stats(last_played DESC)")
     }
-    override fun onUpgrade(db:SQLiteDatabase,oldVersion:Int,newVersion:Int) { /* migrations required for version 2 */ }
+    override fun onUpgrade(db:SQLiteDatabase,oldVersion:Int,newVersion:Int) {
+        if(oldVersion<2){
+            db.execSQL("CREATE TABLE IF NOT EXISTS play_stats (uri TEXT PRIMARY KEY,play_count INTEGER NOT NULL DEFAULT 0,last_played INTEGER NOT NULL DEFAULT 0)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_play_stats_recent ON play_stats(last_played DESC)")
+        }
+    }
 
+    @Synchronized fun recordQualifiedPlay(uri:String,atMillis:Long) {
+        if(!uri.startsWith("content://") || uri.length>2048)return
+        val db=writableDatabase
+        db.beginTransaction()
+        try{
+            val old=db.rawQuery("SELECT play_count FROM play_stats WHERE uri=?",arrayOf(uri)).use {
+                if(it.moveToFirst())it.getInt(0) else 0
+            }
+            val values=ContentValues().apply {
+                put("uri",uri)
+                put("play_count",old.coerceAtMost(Int.MAX_VALUE-1)+1)
+                put("last_played",atMillis)
+            }
+            db.insertWithOnConflict("play_stats",null,values,SQLiteDatabase.CONFLICT_REPLACE)
+            db.setTransactionSuccessful()
+        }finally{db.endTransaction()}
+    }
+    @Synchronized fun playStats():Map<String,PlayInfo> {
+        val out=LinkedHashMap<String,PlayInfo>()
+        readableDatabase.rawQuery("SELECT uri,play_count,last_played FROM play_stats ORDER BY last_played DESC",null).use{
+            while(it.moveToNext())out[it.getString(0)]=PlayInfo(it.getInt(1),it.getLong(2))
+        }
+        return out
+    }
     @Synchronized fun playlists(): List<Playlist> {
         val out= mutableListOf<Playlist>()
         readableDatabase.rawQuery("SELECT p.id,p.name,COUNT(e.uri) FROM playlists p LEFT JOIN entries e ON p.id=e.playlist_id GROUP BY p.id ORDER BY p.name COLLATE NOCASE",null).use{ c ->
@@ -93,6 +125,7 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
                 db.delete("entries","uri=?",arrayOf(uri))
                 db.delete("favorites","uri=?",arrayOf(uri))
                 db.delete("imported","uri=?",arrayOf(uri))
+                db.delete("play_stats","uri=?",arrayOf(uri))
             }
             db.setTransactionSuccessful()
         }finally{db.endTransaction()}
@@ -106,6 +139,7 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
         val record=JSONObject().apply{
             put("uri",t.uri);put("title",t.title);put("artist",t.artist);put("album",t.album)
             put("folder",t.folder);put("source",t.source);put("duration",t.durationMs);put("size",t.sizeBytes)
+            put("addedAtSeconds",t.addedAtSeconds)
         }.toString()
         writableDatabase.insertWithOnConflict("imported",null,ContentValues().apply{
             put("uri",t.uri);put("record",record)
@@ -191,7 +225,7 @@ class MusicStore(context: Context) : SQLiteOpenHelper(context,"protech_music.db"
                 val o=JSONObject(cursor.getString(0))
                 out.add(AudioTrack(o.getString("uri"),o.optString("title"),o.optString("artist"),
                     o.optString("album"),o.optString("folder"),o.optString("source"),
-                    o.optLong("duration"),o.optLong("size")))
+                    o.optLong("duration"),o.optLong("size"),o.optLong("addedAtSeconds")))
             }catch(_:Exception){}
         };return out
     }

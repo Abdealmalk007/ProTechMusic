@@ -330,6 +330,7 @@ private fun MusicApp(
     importReport:String?,onDismissReport:()->Unit,onChanged:()->Unit
 ){
     var tab by remember{mutableStateOf("all")}
+    var smartFilter by remember{mutableStateOf("recentlyAdded")}
     var source by remember{mutableStateOf("All")}
     var folder by remember{mutableStateOf("")}
     var artist by remember{mutableStateOf("")}
@@ -347,6 +348,8 @@ private fun MusicApp(
     var showPlayer by remember{mutableStateOf(false)}
     val playlists=remember(revision){ db.playlists() }
     val favorites=remember(revision){db.favorites()}
+    val statsRevision=MusicRuntime.statsRevision
+    val playStats=remember(revision,statsRevision){db.playStats()}
     val playlistUris=remember(revision,playlist){if(playlist>=0)db.playlistTracks(playlist) else emptyList()}
     val sourceOrder=listOf("WhatsApp","Downloads","Recordings","Telegram","Bluetooth","Music","Podcasts","Audiobooks","System sounds","Imported","Other")
     val sources=songs.groupBy{it.source}
@@ -358,11 +361,19 @@ private fun MusicApp(
     val queueRevision=MusicRuntime.queueRevision
     val queuedTracks=remember(service,queueRevision){service?.queueSnapshot().orEmpty()}
     val queueCurrentIndex=service?.queueCurrentIndex() ?: -1
-    val filtered=remember(songs,tab,source,folder,artist,album,playlistUris,favorites,search) {
+    val filtered=remember(songs,tab,smartFilter,playStats,source,folder,artist,album,playlistUris,favorites,search) {
         val base= when(tab) {
             "source" -> songs.filter{it.source==source}
             "playlist" -> playlistUris.mapNotNull{byUri[it]}
             "favorites" -> songs.filter{favorites.contains(it.uri)}
+            "smart" -> when(smartFilter){
+                "recentlyAdded" -> songs.sortedWith(compareByDescending<AudioTrack>{it.addedAtSeconds}.thenBy{it.title})
+                "recentlyPlayed" -> songs.filter{playStats.containsKey(it.uri)}.sortedByDescending{playStats[it.uri]?.lastPlayedAt?:0L}
+                "mostPlayed" -> songs.filter{playStats.containsKey(it.uri)}.sortedWith(
+                    compareByDescending<AudioTrack>{playStats[it.uri]?.count?:0}.thenByDescending{playStats[it.uri]?.lastPlayedAt?:0L})
+                "favorites" -> songs.filter{it.uri in favorites}
+                else -> songs
+            }
             "folder" -> songs.filter{it.folder==folder}
             "artist" -> songs.filter{it.artist.ifBlank{"غير معروف"}==artist}
             "album" -> songs.filter{it.album.ifBlank{"غير معروف"}==album}
@@ -510,12 +521,13 @@ private fun MusicApp(
             if(error.isNotBlank())Text(error,color=Color(0xFFFFA3A3))
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth(),color=aqua)
             if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" ||
-                tab=="folder" || tab=="artists" || tab=="artist" || tab=="albums" || tab=="album"){
+                tab=="folder" || tab=="smart" || tab=="artists" || tab=="artist" || tab=="albums" || tab=="album"){
                 Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
                     AssistChip(onClick=onPick,label={Text("+ استيراد")})
                     AssistChip(onClick={tab="all"},label={Text("جميع الصوتيات (${songs.size})")})
                     AssistChip(onClick={tab="queue"},label={Text("قائمة الانتظار (${queuedTracks.size})")})
+                    AssistChip(onClick={tab="smart";smartFilter="recentlyAdded";selection=false;selected.clear()},label={Text("قوائم ذكية")})
                     AssistChip(onClick={tab="sources"},label={Text("حسب التطبيق")})
                     AssistChip(onClick={tab="folders"},label={Text("حسب المجلد")})
                     AssistChip(onClick={tab="artists"},label={Text("الفنانون")})
@@ -658,6 +670,32 @@ private fun MusicApp(
                             }
                         }
                     }
+                } else if(tab=="smart"){
+                    Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
+                        Text("قوائم التشغيل الذكية",style=MaterialTheme.typography.titleLarge,
+                            fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        Text("ترتيب تلقائي حسب إضافة الملفات والاستماع الفعلي",
+                            color=Color.LightGray,style=MaterialTheme.typography.bodySmall,maxLines=1,
+                            overflow=TextOverflow.Ellipsis)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                            listOf("recentlyAdded" to "المضافة حديثًا",
+                                "recentlyPlayed" to "المشغلة مؤخرًا",
+                                "mostPlayed" to "الأكثر تشغيلًا",
+                                "favorites" to "المفضلة").forEach{(id,label)->
+                                FilterChip(selected=smartFilter==id,
+                                    onClick={smartFilter=id;search="";selected.clear()},
+                                    label={Text(label)})
+                            }
+                            OutlinedButton(onClick={selection=!selection;selected.clear()}){
+                                Text(if(selection)"إلغاء التحديد" else "تحديد مقاطع")
+                            }
+                        }
+                        if(smartFilter=="mostPlayed"){
+                            Text("يُحتسب التشغيل بعد سماع جزء كافٍ من المقطع، وليس بمجرد النقر عليه.",
+                                color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 } else if(tab=="favorites"){
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                         Text("المفضلة ♥",style=MaterialTheme.typography.titleLarge,
@@ -674,6 +712,8 @@ private fun MusicApp(
                     Text("الفنان: $artist",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="album"){
                     Text("الألبوم: $album",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                } else if(tab=="smart"){
+                    Text("النتائج: "+filtered.size,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else Text("كل الصوتيات (${songs.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 OutlinedTextField(value=search,onValueChange={search=it},
                     label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,
@@ -722,7 +762,15 @@ private fun MusicApp(
                             onDown={db.moveInPlaylist(playlist,track.uri,1);onChanged()},
                             onPlayNext={service?.playNext(track)},
                             onEnqueue={service?.enqueue(track)},
-                            onPermanentDelete={confirmPermanentDelete=listOf(track)})
+                            onPermanentDelete={confirmPermanentDelete=listOf(track)},
+                            extraInfo=if(tab=="smart" && smartFilter=="mostPlayed")
+                                (playStats[track.uri]?.count ?:0).toString()+" تشغيل"
+                            else if(tab=="smart" && smartFilter=="recentlyPlayed")
+                                playStats[track.uri]?.lastPlayedAt?.let{
+                                    java.text.SimpleDateFormat("yyyy/MM/dd HH:mm",Locale.getDefault())
+                                        .format(java.util.Date(it))
+                                }
+                            else null)
                         HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
                     }
                 }
@@ -736,7 +784,7 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
     favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
     onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit,
     onPlayNext:()->Unit={},onEnqueue:()->Unit={},onPermanentDelete:()->Unit={},
-    showQueueActions:Boolean=true){
+    showQueueActions:Boolean=true,extraInfo:String?=null){
     var menuExpanded by remember(track.uri){mutableStateOf(false)}
     Row(
         Modifier.fillMaxWidth().heightIn(min=72.dp).padding(vertical=4.dp),
@@ -762,7 +810,8 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
             Text(track.title,maxLines=1,overflow=TextOverflow.Ellipsis,fontWeight=FontWeight.SemiBold)
             Text(
                 (track.artist.takeIf{it.isNotBlank()}?.let{"$it • "} ?: "")+
-                    "${track.source} • ${readableTime(track.durationMs)}",
+                    "${track.source} • ${readableTime(track.durationMs)}" +
+                    (extraInfo?.let{" • "+it} ?: ""),
                 maxLines=1,overflow=TextOverflow.Ellipsis,color=Color.LightGray,
                 style=MaterialTheme.typography.bodySmall
             )

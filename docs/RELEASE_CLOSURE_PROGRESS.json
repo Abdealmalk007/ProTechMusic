@@ -1,0 +1,175 @@
+{
+    "schema_version":  1,
+    "plan_path":  "docs/RELEASE_CLOSURE_2_PHASES_15_STEPS_2026-11-21.md",
+    "baseline_release_progress_percent":  32,
+    "official_progress_source":  "docs/PROGRESS.json",
+    "status":  "IN_PROGRESS_NOT_RELEASE_READY",
+    "phases":  [
+                   {
+                       "id":  "F",
+                       "label":  "Feature Complete RC",
+                       "progress_percent":  26.7,
+                       "steps":  [
+                                     {
+                                         "id":  "F01",
+                                         "status":  "PASS",
+                                         "evidence":  "docs/HANDOFF_V10.json"
+                                     },
+                                     {
+                                         "id":  "F02",
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_V035_SMARTPLAYLISTS_2026-11-21.md"
+                                     },
+                                     {
+                                         "id":  "F03",
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_V035_SMARTPLAYLISTS_2026-11-21.md"
+                                     },
+                                     {
+                                         "id":  "F04",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F05",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F06",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F07",
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_V034_PLAYBACK_BULK_DELETE_2026-11-21.md"
+                                     },
+                                     {
+                                         "id":  "F08",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F09",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F10",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F11",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F12",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F13",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F14",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "F15",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  null
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  "R",
+                       "label":  "Release Gate",
+                       "progress_percent":  0,
+                       "steps":  [
+                                     {
+                                         "id":  "R01",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R02",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R03",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R04",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R05",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R06",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R07",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R08",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R09",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R10",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R11",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R12",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R13",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R14",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     },
+                                     {
+                                         "id":  "R15",
+                                         "status":  "PLANNED",
+                                         "evidence":  null
+                                     }
+                                 ]
+                   }
+               ],
+    "next_step":  "F04",
+    "last_evidence":  "docs/QA_V035_SMARTPLAYLISTS_2026-11-21.md"
+}

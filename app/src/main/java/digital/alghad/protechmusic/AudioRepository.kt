@@ -16,7 +16,8 @@ import java.util.Locale
 data class AudioTrack(
     val uri: String, val title: String, val artist: String = "",
     val album: String = "", val folder: String = "", val source: String = "Other",
-    val durationMs: Long = 0L, val sizeBytes: Long = 0L
+    val durationMs: Long = 0L, val sizeBytes: Long = 0L,
+    val addedAtSeconds: Long = 0L
 )
 
 object SourceClassifier {
@@ -52,7 +53,7 @@ class AudioRepository(private val context: Context, private val store: MusicStor
             MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.SIZE
+            MediaStore.Audio.Media.SIZE, MediaStore.Audio.Media.DATE_ADDED
         )
         if (Build.VERSION.SDK_INT >= 29) columns.add(MediaStore.Audio.Media.RELATIVE_PATH)
         else columns.add(MediaStore.Audio.Media.DATA)
@@ -66,6 +67,7 @@ class AudioRepository(private val context: Context, private val store: MusicStor
                 val album = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                 val duration = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 val size = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val added = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
                 val pathColumn = if (Build.VERSION.SDK_INT>=29)
                     cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH)
                     else cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
@@ -80,7 +82,7 @@ class AudioRepository(private val context: Context, private val store: MusicStor
                         cursor.getString(artist).orEmpty().takeUnless { it=="<unknown>" }.orEmpty(),
                         cursor.getString(album).orEmpty(),
                         folder,SourceClassifier.classify(rawPath),
-                        cursor.getLong(duration),fileSize)
+                        cursor.getLong(duration),fileSize,cursor.getLong(added))
                 }
             }
         } catch (_: SecurityException) {
@@ -120,7 +122,7 @@ class AudioRepository(private val context: Context, private val store: MusicStor
             retriever.release()
         } catch (_: Exception){}
         val track=AudioTrack(uri.toString(),title.substringBeforeLast('.',title),"","",
-            "Manual import","Imported",duration,size)
+            "Manual import","Imported",duration,size,System.currentTimeMillis()/1000L)
         store.saveImported(track)
         return track
     }

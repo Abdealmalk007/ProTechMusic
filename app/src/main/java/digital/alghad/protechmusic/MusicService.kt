@@ -21,6 +21,11 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object MusicRuntime {
     var nowPlaying by mutableStateOf<AudioTrack?>(null)
@@ -35,6 +40,7 @@ object MusicRuntime {
     var equalizerEnabled by mutableStateOf(false)
     var eqRevision by mutableIntStateOf(0)
     var queueRevision by mutableIntStateOf(0)
+    var statsRevision by mutableIntStateOf(0)
 }
 
 data class EqBandInfo(val index:Int,val centerHz:Int,val minMb:Int,val maxMb:Int,val levelMb:Int)
@@ -51,12 +57,24 @@ class MusicService : Service() {
     private var loudness:LoudnessEnhancer?=null
     private var tracks:List<AudioTrack> = emptyList()
     private val preferences by lazy {getSharedPreferences("playback",MODE_PRIVATE)}
+    private val store by lazy{MusicStore(applicationContext)}
+    private val statsScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+    private val listening=ListeningTracker{uri ->
+        val now=System.currentTimeMillis()
+        statsScope.launch {
+            try{
+                store.recordQualifiedPlay(uri,now)
+                withContext(Dispatchers.Main){MusicRuntime.statsRevision++}
+            }catch(_:Exception){}
+        }
+    }
     private var sleepUntil=0L
     private val tick=object:Runnable {
         override fun run() {
             if(::player.isInitialized) {
                 MusicRuntime.position=player.currentPosition.coerceAtLeast(0L)
                 MusicRuntime.duration=player.duration.takeIf{it>0} ?: MusicRuntime.nowPlaying?.durationMs ?: 0L
+                listening.tick(SystemClock.elapsedRealtime())
                 if(sleepUntil>0L && SystemClock.elapsedRealtime()>=sleepUntil){
                     sleepUntil=0L; pause()
                 }
@@ -73,18 +91,24 @@ class MusicService : Service() {
             setHandleAudioBecomingNoisy(true)
             addListener(object:Player.Listener {
                 override fun onIsPlayingChanged(isPlaying:Boolean) {
+                    listening.playingChanged(isPlaying,SystemClock.elapsedRealtime())
                     MusicRuntime.playing=isPlaying
                     updateSession();showNotification(isPlaying)
                 }
                 override fun onMediaItemTransition(mediaItem:MediaItem?,reason:Int) {
-                    MusicRuntime.nowPlaying=tracks.getOrNull(currentMediaItemIndex)
+                    val track=tracks.getOrNull(currentMediaItemIndex)
+                    listening.switchTo(track?.uri,track?.durationMs?:0L,SystemClock.elapsedRealtime(),isPlaying)
+                    MusicRuntime.nowPlaying=track
                     updateSession();showNotification(isPlaying)
                     remember()
                 }
                 override fun onPlaybackStateChanged(playbackState:Int) {
                     // ExoPlayer advances to the next item in the selected queue.
                     updateSession()
-                    if(playbackState==Player.STATE_ENDED)remember()
+                    if(playbackState==Player.STATE_ENDED){
+                        listening.end(SystemClock.elapsedRealtime())
+                        remember()
+                    }
                 }
                 override fun onAudioSessionIdChanged(audioSessionId:Int) {
                     attachEffects(audioSessionId)
@@ -328,6 +352,7 @@ class MusicService : Service() {
         }catch(_:Exception){}
     }
     override fun onDestroy(){
+        listening.end(SystemClock.elapsedRealtime())
         clock.removeCallbacks(tick)
         remember()
         try{eq?.release();bassEffect?.release();loudness?.release()}catch(_:Exception){}

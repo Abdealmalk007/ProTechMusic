@@ -9,6 +9,7 @@ import android.net.Uri
 import android.widget.Toast
 import java.io.ByteArrayOutputStream
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -101,6 +102,74 @@ class MainActivity:ComponentActivity() {
         }
     }
 
+    private var pendingM3uPlaylistId = -1L
+    private var m3uReport by mutableStateOf<String?>(null)
+    private val createM3u=registerForActivityResult(
+        ActivityResultContracts.CreateDocument("audio/x-mpegurl")
+    ) { uri ->
+        val playlistId=pendingM3uPlaylistId
+        if(uri!=null && playlistId>0L)scope.launch {
+            try {
+                val snapshot=songs.associateBy { it.uri }
+                val count=withContext(Dispatchers.IO){
+                    val tracks=db.playlistTracks(playlistId).map { ref ->
+                        snapshot[ref] ?: AudioTrack(ref,ref.substringAfterLast('/'),source="Missing reference")
+                    }
+                    val bytes=M3uCodec.encode(tracks).toByteArray(Charsets.UTF_8)
+                    require(bytes.size<=2_000_000) { "Playlist too large" }
+                    contentResolver.openOutputStream(uri,"wt")?.use { it.write(bytes) }
+                        ?:throw IllegalStateException("Cannot create playlist file")
+                    tracks.size
+                }
+                Toast.makeText(this@MainActivity,"تم تصدير $count مقطع إلى M3U8",Toast.LENGTH_LONG).show()
+            }catch(_:Exception){
+                Toast.makeText(this@MainActivity,"تعذر تصدير قائمة M3U8",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    private val openM3u=registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if(uri!=null)scope.launch {
+            try {
+                val available=songs.toList()
+                val message=withContext(Dispatchers.IO) {
+                    val bytes=contentResolver.openInputStream(uri)?.use { stream ->
+                        val out=ByteArrayOutputStream()
+                        val block=ByteArray(8192)
+                        while(true){
+                            val n=stream.read(block)
+                            if(n<0)break
+                            require(out.size()+n<=2_000_000) { "Playlist too large" }
+                            out.write(block,0,n)
+                        }
+                        out.toByteArray()
+                    } ?:throw IllegalStateException("Cannot read playlist")
+                    val result=M3uCodec.resolve(String(bytes,Charsets.UTF_8),available)
+                    if(result.tracks.isNotEmpty()){
+                        val rawName=contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)
+                            ?.use{ cursor -> if(cursor.moveToFirst())cursor.getString(0) else null }
+                            ?.substringBeforeLast('.')?.trim()?.take(75)
+                            .orEmpty().ifBlank { "Imported M3U8" }
+                        var id=db.createPlaylist(rawName)
+                        if(id<0)id=db.createPlaylist("$rawName ${System.currentTimeMillis()}")
+                        if(id>0)db.addToPlaylist(id,result.tracks.map{it.uri})
+                    }
+                    buildString{
+                        append("تم العثور على ${result.tracks.size} مقطع قابل للإضافة.\n")
+                        append("ملفات مفقودة: ${result.missing.size} | أسماء متشابهة: ${result.ambiguous.size}")
+                        val unresolved=(result.missing+result.ambiguous).take(12)
+                        if(unresolved.isNotEmpty())append("\n\n").append(unresolved.joinToString("\n"))
+                        if(result.missing.size+result.ambiguous.size>12)append("\n…")
+                        append("\n\nلا يتم حذف أو تعديل أي ملف صوتي أصلي.")
+                    }
+                }
+                refreshCounter++
+                m3uReport=message
+            }catch(_:Exception){
+                m3uReport="ملف M3U/M3U8 غير صالح أو كبير جدًا أو تعذر قراءته."
+            }
+        }
+    }
+
     private val listener=object:ServiceConnection {
         override fun onServiceConnected(name:ComponentName?,binder:android.os.IBinder?){
             musicService=(binder as? MusicService.LocalBinder)?.service
@@ -156,6 +225,15 @@ class MainActivity:ComponentActivity() {
                     onShare={shareTracks(it)},
                     onExport={createBackup.launch("ProTechMusic_backup.json")},
                     onImport={openBackup.launch(arrayOf("application/json","text/plain"))},
+                    onImportM3u={openM3u.launch(arrayOf("*/*"))},
+                    onExportM3u={id ->
+                        pendingM3uPlaylistId=id
+                        val name=db.playlists().firstOrNull{it.id==id}?.name.orEmpty()
+                            .ifBlank{"ProTechMusic"}
+                        createM3u.launch("${name.take(60)}.m3u8")
+                    },
+                    importReport=m3uReport,
+                    onDismissReport={m3uReport=null},
                     onChanged={refreshCounter++}
                 )
             }
@@ -226,7 +304,9 @@ private fun MusicApp(
     service:MusicService?,db:MusicStore,revision:Int,
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
-    onShare:(List<AudioTrack>)->Unit,onExport:()->Unit,onImport:()->Unit,onChanged:()->Unit
+    onShare:(List<AudioTrack>)->Unit,onExport:()->Unit,onImport:()->Unit,
+    onExportM3u:(Long)->Unit,onImportM3u:()->Unit,
+    importReport:String?,onDismissReport:()->Unit,onChanged:()->Unit
 ){
     var tab by remember{mutableStateOf("all")}
     var source by remember{mutableStateOf("All")}
@@ -253,6 +333,9 @@ private fun MusicApp(
     val artists=remember(songs){songs.map{it.artist.ifBlank{"غير معروف"}}.distinct().sorted()}
     val albums=remember(songs){songs.map{it.album.ifBlank{"غير معروف"}}.distinct().sorted()}
     val byUri=remember(songs){songs.associateBy{it.uri}}
+    val queueRevision=MusicRuntime.queueRevision
+    val queuedTracks=remember(service,queueRevision){service?.queueSnapshot().orEmpty()}
+    val queueCurrentIndex=service?.queueCurrentIndex() ?: -1
     val filtered=remember(songs,tab,source,folder,artist,album,playlistUris,favorites,search) {
         val base= when(tab) {
             "source" -> songs.filter{it.source==source}
@@ -265,6 +348,11 @@ private fun MusicApp(
         }
         base.filter{it.title.contains(search,true) || it.artist.contains(search,true) ||
             it.album.contains(search,true)||it.folder.contains(search,true)}
+    }
+    if(importReport!=null){
+        AlertDialog(onDismissRequest=onDismissReport,title={Text("نتيجة استيراد M3U8")},
+            text={Text(importReport)},
+            confirmButton={TextButton(onClick=onDismissReport){Text("إغلاق")}})
     }
     if(confirmPlaylistDelete){
         AlertDialog(
@@ -389,6 +477,7 @@ private fun MusicApp(
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
                     AssistChip(onClick=onPick,label={Text("+ استيراد")})
                     AssistChip(onClick={tab="all"},label={Text("جميع الصوتيات (${songs.size})")})
+                    AssistChip(onClick={tab="queue"},label={Text("قائمة الانتظار (${queuedTracks.size})")})
                     AssistChip(onClick={tab="sources"},label={Text("حسب التطبيق")})
                     AssistChip(onClick={tab="folders"},label={Text("حسب المجلد")})
                     AssistChip(onClick={tab="artists"},label={Text("الفنانون")})
@@ -411,10 +500,11 @@ private fun MusicApp(
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     OutlinedButton(onClick=onExport){Text("تصدير نسخة احتياطية")}
                     OutlinedButton(onClick=onImport){Text("استيراد نسخة")}
+                    OutlinedButton(onClick=onImportM3u){Text("استيراد M3U8")}
                 }
                 LazyColumn {
                     items(playlists,key={it.id}){p->
-                        ListItem(headlineContent={Text(p.name,fontWeight=FontWeight.SemiBold)},
+                        ListItem(headlineContent={Text(p.name,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)},
                             supportingContent={Text("${p.count} مقطع")},
                             leadingContent={Text("♫",color=aqua)},
                             modifier=Modifier.clickable{tab="playlist";playlist=p.id})
@@ -479,12 +569,40 @@ private fun MusicApp(
                 }
             } else if(tab=="effects"){
                 EffectsPanel(service)
+            } else if(tab=="queue"){
+                Text("قائمة انتظار التشغيل (${queuedTracks.size})",
+                    style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                Text("اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار.",
+                    color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
+                LazyColumn(Modifier.fillMaxSize()){
+                    items(queuedTracks.indices.toList(),key={it}){index->
+                        val track=queuedTracks[index]
+                        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                            if(index==queueCurrentIndex)Text("▶",color=aqua,modifier=Modifier.padding(4.dp))
+                            Box(Modifier.weight(1f)){
+                                TrackRow(track=track,selected=false,multiselect=false,
+                                    inPlaylist=true,favorite=favorites.contains(track.uri),
+                                    onPlay={service?.queuePlay(index)},onSelect={},
+                                    onAdd={adding=listOf(track)},onShare={onShare(listOf(track))},
+                                    onFavorite={db.toggleFavorite(track.uri);onChanged()},
+                                    onRemove={service?.queueRemove(index)},
+                                    onUp={service?.queueMove(index,-1)},
+                                    onDown={service?.queueMove(index,1)},
+                                    showQueueActions=false)
+                            }
+                        }
+                        HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
+                    }
+                }
             } else {
                 if(tab=="playlist"){
                     val p=playlists.firstOrNull{it.id==playlist}
                     Column {
-                        Text(p?.name ?: "قائمة التشغيل",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)
+                        Text(p?.name ?: "قائمة التشغيل",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
                         Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                            OutlinedButton(onClick={onExportM3u(playlist)},enabled=playlistUris.isNotEmpty()){
+                                Text("تصدير M3U8")
+                            }
                             OutlinedButton(onClick={onShare(playlistUris.mapNotNull{byUri[it]})},enabled=playlistUris.isNotEmpty()){
                                 Text("مشاركة القائمة")
                             }
@@ -534,7 +652,9 @@ private fun MusicApp(
                             onFavorite={db.toggleFavorite(track.uri);onChanged()},
                             onRemove={db.removeFromPlaylist(playlist,track.uri);onChanged()},
                             onUp={db.moveInPlaylist(playlist,track.uri,-1);onChanged()},
-                            onDown={db.moveInPlaylist(playlist,track.uri,1);onChanged()})
+                            onDown={db.moveInPlaylist(playlist,track.uri,1);onChanged()},
+                            onPlayNext={service?.playNext(track)},
+                            onEnqueue={service?.enqueue(track)})
                         HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
                     }
                 }
@@ -546,7 +666,8 @@ private fun MusicApp(
 @Composable
 private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPlaylist:Boolean,
     favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
-    onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit){
+    onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit,
+    onPlayNext:()->Unit={},onEnqueue:()->Unit={},showQueueActions:Boolean=true){
     var menuExpanded by remember(track.uri){mutableStateOf(false)}
     Row(
         Modifier.fillMaxWidth().heightIn(min=72.dp).padding(vertical=4.dp),
@@ -598,6 +719,12 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
                     text={Text("مشاركة المقطع")},
                     onClick={menuExpanded=false;onShare()}
                 )
+                if(showQueueActions){
+                    DropdownMenuItem(text={Text("تشغيل التالي")},
+                        onClick={menuExpanded=false;onPlayNext()})
+                    DropdownMenuItem(text={Text("إضافة إلى قائمة الانتظار")},
+                        onClick={menuExpanded=false;onEnqueue()})
+                }
                 if(inPlaylist){
                     HorizontalDivider()
                     DropdownMenuItem(text={Text("تحريك لأعلى")},onClick={menuExpanded=false;onUp()})

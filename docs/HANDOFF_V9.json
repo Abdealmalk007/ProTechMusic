@@ -1,0 +1,40 @@
+{
+  "project": "ProTech Music",
+  "version": "0.3.3",
+  "updated_on": "2026-11-21",
+  "status": "DEBUG_QA_ONLY_NOT_RELEASE_READY",
+  "implementation_progress_percent": 28,
+  "completed_tasks": [
+    "01",
+    "07",
+    "08",
+    "11",
+    "12",
+    "14",
+    "16"
+  ],
+  "completed_in_this_cycle": "14",
+  "task14": {
+    "status": "PASS",
+    "evidence": "docs/QA_TASK14_V033_2026-11-21.md",
+    "summary": "Persistent queue: play-next/enqueue/move/remove, restore; SAF M3U/M3U8 import/export, missing/ambiguous track reporting",
+    "test_results": "14/14 Unit Tests PASS; Android 15 320dp font scale 130% UI/SAF smoke PASS",
+    "import_export_roundtrip": "Actual Android DocumentsUI exported 74-byte M3U8 then reimported 1 matched, 0 missing, 0 ambiguous",
+    "bottom_safe_area": "Gestural navbar clearance preserved",
+    "playlist_names": "Single-line with ellipsis"
+  },
+  "source_root": "E:\\ProTech\\ProTechMusic",
+  "latest_debug_apk": "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.3.3_DEBUG.apk",
+  "latest_debug_sha256": "666BDA800F574348103E8637D5AA8F5061F2EB076776941B256ED5E5AF8297E0",
+  "build_log": "docs/build_v033_task14_verified.log",
+  "next_task_id": "13",
+  "next_task": "Implement favorites-driven smart playlists (recently added, recently played, most played, artist, album, genre) with correct playback-event stats semantics and QA; afterwards task 15 metadata backup and restore portability",
+  "remaining_percent": 72,
+  "release_gates_remaining": [
+    "Performance large libraries and long-running sessions",
+    "Android/OEM/real-hardware accessibility and Bluetooth audio focus matrix",
+    "Production keystore signing and icon QA",
+    "GitHub and website release after Gate E"
+  ],
+  "caution": "Do not claim production release. M3U8 exported content URIs are valid for the original media provider; portability to another device requires safe metadata re-linking or user-selected file access."
+}

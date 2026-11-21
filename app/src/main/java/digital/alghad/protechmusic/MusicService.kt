@@ -34,6 +34,7 @@ object MusicRuntime {
     var speed by mutableStateOf(1f)
     var equalizerEnabled by mutableStateOf(false)
     var eqRevision by mutableIntStateOf(0)
+    var queueRevision by mutableIntStateOf(0)
 }
 
 data class EqBandInfo(val index:Int,val centerHz:Int,val minMb:Int,val maxMb:Int,val levelMb:Int)
@@ -124,8 +125,44 @@ class MusicService : Service() {
         player.prepare()
         player.play()
         MusicRuntime.nowPlaying=tracks.getOrNull(startIndex)
+        MusicRuntime.queueRevision++
         showNotification(true)
         remember()
+    }
+    fun queueSnapshot(): List<AudioTrack> = tracks.toList()
+    fun queueCurrentIndex(): Int = player.currentMediaItemIndex
+    fun playNext(track: AudioTrack) {
+        if (tracks.isEmpty()) { playQueue(listOf(track)); return }
+        val position=(player.currentMediaItemIndex+1).coerceIn(0,tracks.size)
+        player.addMediaItem(position,MediaItem.fromUri(track.uri))
+        tracks=tracks.toMutableList().apply { add(position,track) }
+        MusicRuntime.queueRevision++
+        remember()
+    }
+    fun enqueue(track: AudioTrack) {
+        if (tracks.isEmpty()) { playQueue(listOf(track)); return }
+        player.addMediaItem(MediaItem.fromUri(track.uri))
+        tracks=tracks+track
+        MusicRuntime.queueRevision++
+        remember()
+    }
+    fun queueMove(index: Int, direction: Int) {
+        val target=index+direction
+        if(index !in tracks.indices || target !in tracks.indices)return
+        player.moveMediaItem(index,target)
+        tracks=tracks.toMutableList().apply { add(target,removeAt(index)) }
+        MusicRuntime.queueRevision++
+        remember()
+    }
+    fun queueRemove(index: Int) {
+        if(index !in tracks.indices)return
+        player.removeMediaItem(index)
+        tracks=tracks.toMutableList().apply { removeAt(index) }
+        MusicRuntime.queueRevision++
+        remember()
+    }
+    fun queuePlay(index: Int) {
+        if(index in tracks.indices) {player.seekTo(index,0L);player.play();remember()}
     }
     fun resume(){if(player.mediaItemCount>0)player.play()}
     fun pause(){if(::player.isInitialized)player.pause();remember()}
@@ -266,6 +303,7 @@ class MusicService : Service() {
                     preferences.getLong("position",0))
                 player.prepare()
                 MusicRuntime.nowPlaying=saved.getOrNull(player.currentMediaItemIndex)
+                MusicRuntime.queueRevision++
             }
         }catch(_:Exception){}
     }

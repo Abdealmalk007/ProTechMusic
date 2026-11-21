@@ -11,6 +11,7 @@ import android.media.audiofx.LoudnessEnhancer
 import android.os.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -32,7 +33,10 @@ object MusicRuntime {
     var bass by mutableStateOf(0)
     var speed by mutableStateOf(1f)
     var equalizerEnabled by mutableStateOf(false)
+    var eqRevision by mutableIntStateOf(0)
 }
+
+data class EqBandInfo(val index:Int,val centerHz:Int,val minMb:Int,val maxMb:Int,val levelMb:Int)
 
 class MusicService : Service() {
     inner class LocalBinder : Binder() { val service get() = this@MusicService }
@@ -143,7 +147,7 @@ class MusicService : Service() {
     }
     fun setBoost(amount:Int) {MusicRuntime.boost=amount.coerceIn(0,100);applyEffects()}
     fun setBass(amount:Int) {MusicRuntime.bass=amount.coerceIn(0,100);applyEffects()}
-    fun enableEqualizer(enabled:Boolean) {MusicRuntime.equalizerEnabled=enabled;applyEffects()}
+    fun enableEqualizer(enabled:Boolean) {MusicRuntime.equalizerEnabled=enabled;applyEffects();MusicRuntime.eqRevision++}
     fun equalizerInfo():String = try {
         val e=eq ?: return "غير مدعوم"
         "${e.numberOfBands} bands / ${e.numberOfPresets} presets"
@@ -151,13 +155,39 @@ class MusicService : Service() {
     fun applyEqPreset(preset:Short) {
         try {
             val effect=eq ?:return
-            if(preset>=0 && preset<effect.numberOfPresets){effect.usePreset(preset);MusicRuntime.equalizerEnabled=true;applyEffects()}
+            if(preset>=0 && preset<effect.numberOfPresets){effect.usePreset(preset);MusicRuntime.equalizerEnabled=true;applyEffects();MusicRuntime.eqRevision++}
         } catch (_:Exception){}
     }
     fun eqPresets():List<String> = try{
         val effect=eq ?:return emptyList()
         (0 until effect.numberOfPresets).map{effect.getPresetName(it.toShort())}
     } catch (_:Exception){emptyList()}
+    fun eqBands():List<EqBandInfo> = try {
+        val e=eq ?: return emptyList()
+        val range=e.bandLevelRange
+        val low=maxOf(range[0].toInt(),-600)
+        val high=minOf(range[1].toInt(),600)
+        (0 until e.numberOfBands.toInt()).map { n ->
+            val band=n.toShort()
+            EqBandInfo(n,e.getCenterFreq(band)/1000,low,high,
+                e.getBandLevel(band).toInt().coerceIn(low,high))
+        }
+    } catch (_:Exception){emptyList()}
+
+    fun setEqBand(index:Int,levelMb:Int){
+        val e=eq ?: return
+        if(index !in 0 until e.numberOfBands.toInt())return
+        try {
+            val range=e.bandLevelRange
+            val lower=maxOf(range[0].toInt(),-600)
+            val upper=minOf(range[1].toInt(),600)
+            e.setBandLevel(index.toShort(),levelMb.coerceIn(lower,upper).toShort())
+            MusicRuntime.equalizerEnabled=true
+            applyEffects()
+            MusicRuntime.eqRevision++
+        }catch (_:Exception){}
+    }
+
     private fun attachEffects(audioId:Int) {
         try{eq?.release()}catch(_:Exception){}
         try{bassEffect?.release()}catch(_:Exception){}
@@ -168,6 +198,7 @@ class MusicService : Service() {
         bassEffect=try{BassBoost(0,audioId)}catch(_:Throwable){null}
         loudness=try{LoudnessEnhancer(audioId)}catch(_:Throwable){null}
         applyEffects()
+        MusicRuntime.eqRevision++
     }
     private fun applyEffects(){
         try{eq?.enabled=MusicRuntime.equalizerEnabled}catch(_:Exception){}

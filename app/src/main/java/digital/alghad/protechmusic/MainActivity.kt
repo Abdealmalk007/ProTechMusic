@@ -5,6 +5,8 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
+import android.widget.Toast
 import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -103,11 +105,38 @@ class MainActivity:ComponentActivity() {
                             val idx=from.indexOfFirst{it.uri==selected.uri}.coerceAtLeast(0)
                             service.playQueue(from,idx)
                         }
-                    }, onChanged={refreshCounter++}
+                    },
+                    onShare={shareTracks(it)},
+                    onChanged={refreshCounter++}
                 )
             }
         }}
         if(allowed) refresh()
+    }
+    private fun shareTracks(tracks:List<AudioTrack>) {
+        val uris=tracks.mapNotNull {
+            try {
+                Uri.parse(it.uri).takeIf{uri->uri.scheme=="content"}
+            }catch (_:Exception){null}
+        }.distinct()
+        if(uris.isEmpty()){
+            Toast.makeText(this,"لا يوجد ملف قابل للمشاركة",Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val clip=ClipData.newUri(contentResolver,"Audio",uris.first())
+            uris.drop(1).forEach{clip.addItem(ClipData.Item(it))}
+            val intent=Intent(if(uris.size==1)Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE).apply{
+                type="audio/*"
+                if(uris.size==1)putExtra(Intent.EXTRA_STREAM,uris.first())
+                else putParcelableArrayListExtra(Intent.EXTRA_STREAM,ArrayList(uris))
+                clipData=clip
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent,"مشاركة الصوتيات"))
+        } catch(e:Exception) {
+            Toast.makeText(this,"تعذرت مشاركة الملفات الصوتية",Toast.LENGTH_LONG).show()
+        }
     }
     private fun hasMediaPermission():Boolean {
         val p=if(Build.VERSION.SDK_INT>=33)Manifest.permission.READ_MEDIA_AUDIO
@@ -147,7 +176,8 @@ private fun MusicApp(
     songs:List<AudioTrack>,allowed:Boolean,busy:Boolean,error:String,
     service:MusicService?,db:MusicStore,revision:Int,
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
-    onPlay:(AudioTrack,List<AudioTrack>)->Unit,onChanged:()->Unit
+    onPlay:(AudioTrack,List<AudioTrack>)->Unit,
+    onShare:(List<AudioTrack>)->Unit,onChanged:()->Unit
 ){
     var tab by remember{mutableStateOf("all")}
     var source by remember{mutableStateOf("All")}
@@ -171,7 +201,7 @@ private fun MusicApp(
     val byUri=remember(songs){songs.associateBy{it.uri}}
     val filtered=remember(songs,tab,source,folder,playlistUris,favorites,search) {
         val base= when(tab) {
-            "sources" -> songs.filter{it.source==source}
+            "source" -> songs.filter{it.source==source}
             "playlist" -> playlistUris.mapNotNull{byUri[it]}
             "favorites" -> songs.filter{favorites.contains(it.uri)}
             "folder" -> songs.filter{it.folder==folder}
@@ -233,7 +263,9 @@ private fun MusicApp(
                     listOf(Triple("all","الكل","♫"),Triple("sources","المصادر","▦"),
                         Triple("playlists","قوائمي","≡"),Triple("favorites","المفضلة","♥"),
                         Triple("effects","الصوت","◉")).forEach{item->
-                        NavigationBarItem(selected=(tab==item.first)||(tab=="playlist"&&item.first=="playlists"),
+                        NavigationBarItem(selected=(tab==item.first)||
+                                (tab=="playlist"&&item.first=="playlists")||
+                                ((tab=="source"||tab=="folders"||tab=="folder")&&item.first=="sources"),
                             onClick={tab=item.first;search="";selection=false;selected.clear();showPlayer=false},
                             icon={Text(item.third)},label={Text(item.second)},alwaysShowLabel=true)
                     }
@@ -255,7 +287,7 @@ private fun MusicApp(
             }
             if(error.isNotBlank())Text(error,color=Color(0xFFFFA3A3))
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth(),color=aqua)
-            if(tab=="all" || tab=="sources" || tab=="folders" || tab=="folder"){
+            if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" || tab=="folder"){
                 Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
                     AssistChip(onClick=onPick,label={Text("+ استيراد")})
@@ -264,13 +296,9 @@ private fun MusicApp(
                     AssistChip(onClick={tab="folders"},label={Text("حسب المجلد")})
                     AssistChip(onClick={selection=!selection;selected.clear()},label={Text(if(selection)"إلغاء التحديد" else "تحديد متعدد")})
                 }
-                if(tab=="sources"){
-                    Text("حسب المصدر",style=MaterialTheme.typography.titleMedium)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(5.dp)){
-                        sourceLabels.forEach{key->
-                            FilterChip(selected=source==key,onClick={source=key},
-                                label={Text("${when(key){"WhatsApp"->"واتساب";"Downloads"->"التنزيلات";"Recordings"->"التسجيلات";"Telegram"->"تيليجرام";"Music"->"الموسيقى";"Imported"->"المستوردة";else->key}} (${sources[key]?.size?:0})")})
-                        }
+                if(tab=="source"){
+                    TextButton(onClick={tab="sources";selection=false;selected.clear()}){
+                        Text("‹ الرجوع إلى المصادر")
                     }
                 }
             }
@@ -286,6 +314,30 @@ private fun MusicApp(
                             leadingContent={Text("♫",color=aqua)},
                             modifier=Modifier.clickable{tab="playlist";playlist=p.id})
                         HorizontalDivider(color=Color.DarkGray)
+                    }
+                }
+            } else if(tab=="sources"){
+                Text("الصوتيات حسب التطبيق والمصدر",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                LazyColumn {
+                    items(sourceLabels.filter{(sources[it]?.size?:0)>0},key={it}) { key ->
+                        val name=when(key) {
+                            "WhatsApp"->"واتساب"
+                            "Downloads"->"التنزيلات"
+                            "Recordings"->"التسجيلات"
+                            "Telegram"->"تيليجرام"
+                            "Bluetooth"->"بلوتوث"
+                            "Music"->"الموسيقى"
+                            "Imported"->"المستوردة يدويًا"
+                            else->key
+                        }
+                        ListItem(
+                            headlineContent={Text(name,fontWeight=FontWeight.SemiBold)},
+                            supportingContent={Text("${sources[key]?.size?:0} مقطع صوتي")},
+                            leadingContent={Text("▣",color=aqua)},
+                            trailingContent={Text("‹",color=aqua)},
+                            modifier=Modifier.clickable{source=key;search="";tab="source"}
+                        )
+                        HorizontalDivider(color=Color(0xFF333554))
                     }
                 }
             } else if(tab=="folders"){
@@ -304,17 +356,20 @@ private fun MusicApp(
             } else {
                 if(tab=="playlist"){
                     val p=playlists.firstOrNull{it.id==playlist}
-                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                    Column {
                         Text(p?.name ?: "قائمة التشغيل",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)
-                        Row{
+                        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                            OutlinedButton(onClick={onShare(playlistUris.mapNotNull{byUri[it]})},enabled=playlistUris.isNotEmpty()){
+                                Text("مشاركة القائمة")
+                            }
                             TextButton(onClick={playlistName=p?.name.orEmpty();playlistForEdit=playlist;creating=true}){Text("تعديل")}
                             TextButton(onClick={db.deletePlaylist(playlist);tab="playlists";onChanged()}){Text("حذف")}
                         }
                     }
                 } else if(tab=="favorites"){
                     Text("المفضلة ♥",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                } else if(tab=="sources"){
-                    Text("المصدر: $source",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                } else if(tab=="source"){
+                    Text("المصدر: $source (${filtered.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="folder"){
                     Text("المجلد: $folder",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else Text("كل الصوتيات (${songs.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
@@ -322,8 +377,13 @@ private fun MusicApp(
                     label={Text("بحث عن مقطع أو فنان أو مجلد")},singleLine=true,
                     modifier=Modifier.fillMaxWidth().padding(vertical=6.dp))
                 if(selection && selected.isNotEmpty()){
-                    Button(onClick={adding=selected.mapNotNull{byUri[it]}}){
-                        Text("إضافة ${selected.size} مقطع إلى قائمة")
+                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        Button(onClick={adding=selected.mapNotNull{byUri[it]}}){
+                            Text("إضافة ${selected.size} إلى قائمة")
+                        }
+                        OutlinedButton(onClick={onShare(selected.mapNotNull{byUri[it]})}){
+                            Text("مشاركة المحدد")
+                        }
                     }
                 }
                 if(filtered.isEmpty()) {
@@ -339,6 +399,7 @@ private fun MusicApp(
                             onPlay={onPlay(track,filtered)},
                             onSelect={if(isSelected)selected.remove(track.uri) else selected.add(track.uri)},
                             onAdd={adding=listOf(track)},
+                            onShare={onShare(listOf(track))},
                             onFavorite={db.toggleFavorite(track.uri);onChanged()},
                             onRemove={db.removeFromPlaylist(playlist,track.uri);onChanged()},
                             onUp={db.moveInPlaylist(playlist,track.uri,-1);onChanged()},
@@ -353,7 +414,7 @@ private fun MusicApp(
 
 @Composable
 private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPlaylist:Boolean,
-    favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onFavorite:()->Unit,
+    favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
     onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit){
     Row(Modifier.fillMaxWidth().heightIn(min=66.dp).padding(vertical=4.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -373,6 +434,9 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
         }
         IconButton(onClick=onAdd,modifier=Modifier.size(32.dp)){
             Text("+",color=aqua,style=MaterialTheme.typography.titleLarge)
+        }
+        IconButton(onClick=onShare,modifier=Modifier.size(32.dp)){
+            Text("↗",color=aqua,style=MaterialTheme.typography.titleLarge)
         }
         if(inPlaylist){
             Column {
@@ -424,6 +488,8 @@ private fun EffectsPanel(service:MusicService?){
     var sleepMinutes by remember{mutableIntStateOf(0)}
     var selectedPreset by remember{mutableStateOf("")}
     val presets=remember(service){service?.eqPresets().orEmpty()}
+    val eqRevision=MusicRuntime.eqRevision
+    val eqBands=remember(service,eqRevision){service?.eqBands().orEmpty()}
     LazyColumn(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(16.dp),
         contentPadding=PaddingValues(vertical=12.dp)){
         item{Text("مضخم الصوت والمؤثرات",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.headlineSmall,color=aqua)}
@@ -449,6 +515,28 @@ private fun EffectsPanel(service:MusicService?){
                 presets.forEachIndexed{idx,name->
                     FilterChip(selected=selectedPreset==name,onClick={selectedPreset=name;service?.applyEqPreset(idx.toShort())},label={Text(name)})
                 }
+            }
+        }
+        item {
+            Text("ضبط الترددات يدويًا",fontWeight=FontWeight.Bold)
+            if(eqBands.isEmpty()){
+                Text("الضبط اليدوي غير مدعوم على هذا الجهاز",color=Color.LightGray)
+            } else {
+                eqBands.forEach { band ->
+                    val hz=if(band.centerHz>=1000)
+                        String.format(Locale.US,"%.1f kHz",band.centerHz/1000f)
+                        else "${band.centerHz} Hz"
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
+                        Text(hz,color=aqua)
+                        Text(String.format(Locale.US,"%+.1f dB",band.levelMb/100f),color=Color.LightGray)
+                    }
+                    Slider(
+                        value=band.levelMb.toFloat(),
+                        onValueChange={service?.setEqBand(band.index,it.toInt())},
+                        valueRange=band.minMb.toFloat()..band.maxMb.toFloat()
+                    )
+                }
+                Text("نطاق الضبط محدود إلى ±6 dB لتقليل التشويه",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
             }
         }
         item {

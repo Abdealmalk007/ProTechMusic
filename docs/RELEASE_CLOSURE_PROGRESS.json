@@ -8,7 +8,7 @@
                    {
                        "id":  "F",
                        "label":  "Feature Complete RC",
-                       "progress_percent":  80.0,
+                       "progress_percent":  86.7,
                        "steps":  [
                                      {
                                          "id":  "F01",
@@ -72,8 +72,8 @@
                                      },
                                      {
                                          "id":  "F13",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F13_RESPONSIVE_BILINGUAL_20261122.md"
                                      },
                                      {
                                          "id":  "F14",
@@ -170,6 +170,6 @@
                                  ]
                    }
                ],
-    "next_step":  "F13",
-    "last_evidence":  "docs/QA_F12_ANDROID35_ACCEPTANCE_20261122.md"
+    "next_step":  "F14",
+    "last_evidence":  "docs/QA_F13_RESPONSIVE_BILINGUAL_20261122.md"
 }

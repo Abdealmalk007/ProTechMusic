@@ -64,6 +64,7 @@ class MainActivity:ComponentActivity() {
         }
     }
     private var songs by mutableStateOf<List<AudioTrack>>(emptyList())
+    private val uiPreferences by lazy { getSharedPreferences("ui_language", MODE_PRIVATE) }
     private var musicService by mutableStateOf<MusicService?>(null)
     private var allowed by mutableStateOf(false)
     private var busy by mutableStateOf(false)
@@ -242,16 +243,22 @@ class MainActivity:ComponentActivity() {
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
         allowed=hasMediaPermission()
+        UiLanguage.english=uiPreferences.getBoolean("english",false)
         connected=bindService(Intent(this,MusicService::class.java),listener,BIND_AUTO_CREATE)
         setContent { MaterialTheme(
             colorScheme=darkColorScheme(primary=aqua,secondary=purple,background=deepBlue,
                 surface=Color(0xFF1C1D3D),onSurface=Color.White,onBackground=Color.White)
         ) {
-            androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides
+                if(UiLanguage.english) LayoutDirection.Ltr else LayoutDirection.Rtl) {
                 MusicApp(
                     songs=songs,allowed=allowed,busy=busy,error=failure,
                     service=musicService,db=db,revision=refreshCounter,
                     onGrant={grantPermission()},onRescan={refresh()},onPick={pickAudio.launch(arrayOf("audio/*"))},
+                    onToggleLanguage={
+                        UiLanguage.english=!UiLanguage.english
+                        uiPreferences.edit().putBoolean("english",UiLanguage.english).apply()
+                    },
                     onPlay={selected,from ->
                         val service=musicService
                         if(service!=null){
@@ -351,7 +358,7 @@ private fun readableTime(ms:Long):String {
 private fun MusicApp(
     songs:List<AudioTrack>,allowed:Boolean,busy:Boolean,error:String,
     service:MusicService?,db:MusicStore,revision:Int,
-    onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
+    onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,onToggleLanguage:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
     onShare:(List<AudioTrack>)->Unit,
     onImportLyrics:(AudioTrack)->Unit,
@@ -361,7 +368,11 @@ private fun MusicApp(
     onExportM3u:(Long)->Unit,onImportM3u:()->Unit,
     importReport:String?,onDismissReport:()->Unit,onChanged:()->Unit
 ){
+    val configuration=LocalConfiguration.current
+    val isLandscape=configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isCompact=configuration.screenWidthDp<360
     var tab by remember{mutableStateOf("all")}
+    var showLandscapeFilters by remember{mutableStateOf(false)}
     var smartFilter by remember{mutableStateOf("recentlyAdded")}
     var source by remember{mutableStateOf("All")}
     var folder by remember{mutableStateOf("")}
@@ -417,15 +428,15 @@ private fun MusicApp(
         TrackSearchEngine.search(base,search,searchSort)
     }
     if(importReport!=null){
-        AlertDialog(onDismissRequest=onDismissReport,title={Text("نتيجة استيراد M3U8")},
+        AlertDialog(onDismissRequest=onDismissReport,title={Text(UiLanguage.text("نتيجة استيراد M3U8"))},
             text={Text(importReport)},
-            confirmButton={TextButton(onClick=onDismissReport){Text("إغلاق")}})
+            confirmButton={TextButton(onClick=onDismissReport){Text(UiLanguage.text("إغلاق"))}})
     }
     if(confirmPermanentDelete.isNotEmpty()){
         val candidates=confirmPermanentDelete
         AlertDialog(
             onDismissRequest={confirmPermanentDelete=emptyList()},
-            title={Text("حذف نهائي من الجهاز",color=Color(0xFFFFAAAA))},
+            title={Text(UiLanguage.text("حذف نهائي من الجهاز"),color=Color(0xFFFFAAAA))},
             text={Text("سيُحذف "+candidates.size+
                 " مقطع صوتي نهائيًا من ذاكرة الجهاز، وليس من قائمة التشغيل فقط. لا يمكن التراجع. سيطلب Android موافقتك، والملفات التي لا يسمح بحذفها ستبقى.")},
             confirmButton={TextButton(onClick={
@@ -433,26 +444,26 @@ private fun MusicApp(
                 onDelete(candidates)
                 selected.clear()
                 selection=false
-            }){Text("تأكيد الحذف النهائي",color=Color(0xFFFF9999))}},
-            dismissButton={TextButton(onClick={confirmPermanentDelete=emptyList()}){Text("إلغاء")}}
+            }){Text(UiLanguage.text("تأكيد الحذف النهائي"),color=Color(0xFFFF9999))}},
+            dismissButton={TextButton(onClick={confirmPermanentDelete=emptyList()}){Text(UiLanguage.text("إلغاء"))}}
         )
     }
     if(confirmPlaylistDelete){
         AlertDialog(
             onDismissRequest={confirmPlaylistDelete=false},
-            title={Text("تأكيد حذف القائمة")},
-            text={Text("سيتم حذف قائمة التشغيل فقط، ولن تُحذف الملفات الصوتية الأصلية.")},
+            title={Text(UiLanguage.text("تأكيد حذف القائمة"))},
+            text={Text(UiLanguage.text("سيتم حذف قائمة التشغيل فقط، ولن تُحذف الملفات الصوتية الأصلية."))},
             confirmButton={TextButton(onClick={
                 if(playlist>=0L){db.deletePlaylist(playlist);tab="playlists";onChanged()}
                 confirmPlaylistDelete=false
-            }){Text("حذف القائمة")}},
-            dismissButton={TextButton(onClick={confirmPlaylistDelete=false}){Text("إلغاء")}}
+            }){Text(UiLanguage.text("حذف القائمة"))}},
+            dismissButton={TextButton(onClick={confirmPlaylistDelete=false}){Text(UiLanguage.text("إلغاء"))}}
         )
     }
     if(creating){
-        AlertDialog(onDismissRequest={creating=false},title={Text(if(playlistForEdit>=0)"تعديل اسم القائمة" else "قائمة تشغيل جديدة")},
+        AlertDialog(onDismissRequest={creating=false},title={Text(if(playlistForEdit>=0)UiLanguage.text("تعديل اسم القائمة") else UiLanguage.text("قائمة تشغيل جديدة"))},
             text={OutlinedTextField(value=playlistName,onValueChange={playlistName=it.take(100)},
-                singleLine=true,label={Text("اسم القائمة")})},
+                singleLine=true,label={Text(UiLanguage.text("اسم القائمة"))})},
             confirmButton={TextButton(onClick={
                 if(playlistName.isNotBlank()){
                     if(playlistForEdit>=0)db.renamePlaylist(playlistForEdit,playlistName)
@@ -462,16 +473,16 @@ private fun MusicApp(
                     }
                     onChanged();creating=false;adding=null;playlistName="";playlistForEdit=-1
                 }
-            }){Text("حفظ")}},
-            dismissButton={TextButton(onClick={creating=false}){Text("إلغاء")}})
+            }){Text(UiLanguage.text("حفظ"))}},
+            dismissButton={TextButton(onClick={creating=false}){Text(UiLanguage.text("إلغاء"))}})
     }
     if(adding!=null && !creating){
         AlertDialog(onDismissRequest={adding=null},
-            title={Text("إضافة إلى قائمة تشغيل")},
+            title={Text(UiLanguage.text("إضافة إلى قائمة تشغيل"))},
             text={
                 Column(verticalArrangement=Arrangement.spacedBy(3.dp)) {
-                    Text("${adding?.size ?:0} مقطع محدد")
-                    OutlinedButton(onClick={playlistName="";playlistForEdit=-1;creating=true}){Text("+ إنشاء قائمة جديدة")}
+                    Text(UiLanguage.text("${adding?.size ?:0} مقطع محدد"))
+                    OutlinedButton(onClick={playlistName="";playlistForEdit=-1;creating=true}){Text(UiLanguage.text("+ إنشاء قائمة جديدة"))}
                     playlists.forEach{p->
                         TextButton(onClick={
                             db.addToPlaylist(p.id,adding.orEmpty().map{it.uri})
@@ -479,7 +490,7 @@ private fun MusicApp(
                         }){Text("${p.name}  (${p.count})")}
                     }
                 }
-            },confirmButton={TextButton(onClick={adding=null}){Text("إغلاق")}})
+            },confirmButton={TextButton(onClick={adding=null}){Text(UiLanguage.text("إغلاق"))}})
     }
     if(showPlayer && MusicRuntime.nowPlaying != null){
         ModalBottomSheet(
@@ -505,15 +516,21 @@ private fun MusicApp(
         topBar={CenterAlignedTopAppBar(
             colors=TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor=deepBlue),
             title={Column(horizontalAlignment=Alignment.CenterHorizontally){
-                Text("ProTech Music",fontWeight=FontWeight.Bold,color=aqua)
-                Text("مشغل الصوتيات • ALGHAD DIGITAL",style=MaterialTheme.typography.labelSmall,color=Color.LightGray)
+                Text("ProTech Music",fontWeight=FontWeight.Bold,color=aqua,
+                    fontSize=if(isCompact)18.sp else 22.sp,maxLines=1)
+                Text(UiLanguage.text("مشغل الصوتيات • ALGHAD DIGITAL"),
+                    style=MaterialTheme.typography.labelSmall,color=Color.LightGray,
+                    maxLines=1,overflow=TextOverflow.Ellipsis)
             }},
             actions={
+                TextButton(onClick=onToggleLanguage,modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)){
+                    Text(if(UiLanguage.english) "عربي" else "EN",color=aqua)
+                }
                 IconButton(onClick=onRescan){Text("⟳",color=aqua,style=MaterialTheme.typography.headlineSmall)}
             }
         )},
         bottomBar={
-            Column(
+            if(!isLandscape) Column(
                 Modifier.fillMaxWidth()
                     .background(Color(0xFF202243))
                     .windowInsetsPadding(WindowInsets.navigationBars)
@@ -526,32 +543,52 @@ private fun MusicApp(
                     containerColor=Color(0xFF202243),
                     windowInsets=WindowInsets(0,0,0,0)
                 ) {
-                    listOf(Triple("all","الكل","♫"),Triple("sources","المصادر","▦"),
-                        Triple("playlists","قوائمي","≡"),Triple("favorites","المفضلة","♥"),
-                        Triple("effects","الصوت","◉")).forEach{item->
+                    listOf(Triple("all",UiLanguage.text("الكل"),"♫"),Triple("sources",UiLanguage.text("المصادر"),"▦"),
+                        Triple("playlists",UiLanguage.text("قوائمي"),"≡"),Triple("favorites",UiLanguage.text("المفضلة"),"♥"),
+                        Triple("effects",UiLanguage.text("الصوت"),"◉")).forEach{item->
                         NavigationBarItem(selected=(tab==item.first)||
                                 (tab=="playlist"&&item.first=="playlists")||
                                 ((tab=="source"||tab=="folders"||tab=="folder"||
                                     tab=="artists"||tab=="artist"||tab=="albums"||tab=="album")&&item.first=="sources"),
                             onClick={tab=item.first;search="";selection=false;selected.clear();showPlayer=false},
-                            icon={Text(item.third,fontSize=20.sp,maxLines=1)},
-                            label={Text(item.second,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)},
-                            alwaysShowLabel=true)
+                            icon={Text(item.third,fontSize=20.sp,
+                                maxLines=1,modifier=Modifier.semantics { contentDescription=item.second })},
+                            label={if(!isCompact && configuration.fontScale<=1.3f)
+                                Text(item.second,fontSize=11.sp,maxLines=1,overflow=TextOverflow.Ellipsis)},
+                            alwaysShowLabel=(!isCompact && configuration.fontScale<=1.3f))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
             }
         }
     ){inner ->
-        Column(Modifier.padding(inner).fillMaxSize().padding(horizontal=12.dp)){
+        Row(Modifier.padding(inner).fillMaxSize()){
+            if(isLandscape){
+                Column(Modifier.width(80.dp).fillMaxHeight()
+                    .background(Color(0xFF202243)).verticalScroll(rememberScrollState()),
+                    horizontalAlignment=Alignment.CenterHorizontally){
+                    listOf(Triple("all",UiLanguage.text("الكل"),"♫"),Triple("sources",UiLanguage.text("المصادر"),"▦"),
+                        Triple("playlists",UiLanguage.text("قوائمي"),"≡"),Triple("favorites",UiLanguage.text("المفضلة"),"♥"),
+                        Triple("effects",UiLanguage.text("الصوت"),"◉")).forEach{ item ->
+                        Column(Modifier.fillMaxWidth().clickable{
+                            tab=item.first;search="";selection=false;selected.clear();showPlayer=false
+                        }.padding(vertical=6.dp,horizontal=3.dp),horizontalAlignment=Alignment.CenterHorizontally){
+                            Text(item.third,color=if(tab==item.first)aqua else Color.White,fontSize=19.sp)
+                            Text(UiLanguage.text(item.second),fontSize=10.sp,maxLines=1,
+                                overflow=TextOverflow.Ellipsis,color=if(tab==item.first)aqua else Color.LightGray)
+                        }
+                    }
+                }
+            }
+            Column(Modifier.weight(1f).fillMaxHeight().padding(horizontal=if(isCompact)6.dp else 12.dp)){
             if(!allowed){
                 Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF292B58)),
                     modifier=Modifier.fillMaxWidth().padding(vertical=12.dp)) {
                     Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-                        Text("السماح بقراءة الصوتيات",fontWeight=FontWeight.Bold)
-                        Text("امنح صلاحية الصوتيات لعرض جميع الملفات الصوتية المتاحة، بما فيها مقاطع WhatsApp والتنزيلات والتسجيلات.")
-                        Button(onClick=onGrant){Text("منح صلاحية الصوتيات")}
-                        OutlinedButton(onClick=onPick){Text("اختيار ملفات يدويًا")}
+                        Text(UiLanguage.text("السماح بقراءة الصوتيات"),fontWeight=FontWeight.Bold)
+                        Text(UiLanguage.text("امنح صلاحية الصوتيات لعرض جميع الملفات الصوتية المتاحة، بما فيها مقاطع WhatsApp والتنزيلات والتسجيلات."))
+                        Button(onClick=onGrant){Text(UiLanguage.text("منح صلاحية الصوتيات"))}
+                        OutlinedButton(onClick=onPick){Text(UiLanguage.text("اختيار ملفات يدويًا"))}
                     }
                 }
             }
@@ -559,62 +596,62 @@ private fun MusicApp(
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth(),color=aqua)
             if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" ||
                 tab=="folder" || tab=="smart" || tab=="artists" || tab=="artist" || tab=="albums" || tab=="album"){
-                Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
+                if(!isLandscape || showLandscapeFilters) Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
-                    AssistChip(onClick=onPick,label={Text("+ استيراد")})
-                    AssistChip(onClick={tab="all"},label={Text("جميع الصوتيات (${songs.size})")})
-                    AssistChip(onClick={tab="queue"},label={Text("قائمة الانتظار (${queuedTracks.size})")})
-                    AssistChip(onClick={tab="smart";smartFilter="recentlyAdded";selection=false;selected.clear()},label={Text("قوائم ذكية")})
-                    AssistChip(onClick={tab="sources"},label={Text("حسب التطبيق")})
-                    AssistChip(onClick={tab="folders"},label={Text("حسب المجلد")})
-                    AssistChip(onClick={tab="artists"},label={Text("الفنانون")})
-                    AssistChip(onClick={tab="albums"},label={Text("الألبومات")})
-                    AssistChip(onClick={selection=!selection;selected.clear()},label={Text(if(selection)"إلغاء التحديد" else "تحديد متعدد")})
+                    AssistChip(onClick=onPick,label={Text(UiLanguage.text("+ استيراد"))})
+                    AssistChip(onClick={tab="all"},label={Text(UiLanguage.text("جميع الصوتيات (${songs.size})"))})
+                    AssistChip(onClick={tab="queue"},label={Text(UiLanguage.text("قائمة الانتظار (${queuedTracks.size})"))})
+                    AssistChip(onClick={tab="smart";smartFilter="recentlyAdded";selection=false;selected.clear()},label={Text(UiLanguage.text("قوائم ذكية"))})
+                    AssistChip(onClick={tab="sources"},label={Text(UiLanguage.text("حسب التطبيق"))})
+                    AssistChip(onClick={tab="folders"},label={Text(UiLanguage.text("حسب المجلد"))})
+                    AssistChip(onClick={tab="artists"},label={Text(UiLanguage.text("الفنانون"))})
+                    AssistChip(onClick={tab="albums"},label={Text(UiLanguage.text("الألبومات"))})
+                    AssistChip(onClick={selection=!selection;selected.clear()},label={Text(if(selection)UiLanguage.text("إلغاء التحديد") else UiLanguage.text("تحديد متعدد"))})
                 }
                 if(tab=="source"){
                     TextButton(onClick={tab="sources";selection=false;selected.clear()}){
-                        Text("‹ الرجوع إلى المصادر")
+                        Text(UiLanguage.text("‹ الرجوع إلى المصادر"))
                     }
                 }
             }
             if(tab=="playlists"){
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
-                    Text("قوائم التشغيل المخصصة",modifier=Modifier.weight(1f),maxLines=1,
+                    Text(UiLanguage.text("قوائم التشغيل المخصصة"),modifier=Modifier.weight(1f),maxLines=1,
                         overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                    Button(onClick={playlistName="";playlistForEdit=-1;adding=null;creating=true}){Text("+ إنشاء")}
+                    Button(onClick={playlistName="";playlistForEdit=-1;adding=null;creating=true}){Text(UiLanguage.text("+ إنشاء"))}
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    OutlinedButton(onClick=onExport){Text("تصدير نسخة احتياطية")}
-                    OutlinedButton(onClick=onImport){Text("استيراد نسخة")}
-                    OutlinedButton(onClick=onImportM3u){Text("استيراد M3U8")}
+                    OutlinedButton(onClick=onExport){Text(UiLanguage.text("تصدير نسخة احتياطية"))}
+                    OutlinedButton(onClick=onImport){Text(UiLanguage.text("استيراد نسخة"))}
+                    OutlinedButton(onClick=onImportM3u){Text(UiLanguage.text("استيراد M3U8"))}
                 }
                 LazyColumn {
                     items(playlists,key={it.id}){p->
                         ListItem(headlineContent={Text(p.name,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)},
-                            supportingContent={Text("${p.count} مقطع")},
+                            supportingContent={Text(UiLanguage.text("${p.count} مقطع"))},
                             leadingContent={Text("♫",color=aqua)},
                             modifier=Modifier.clickable{tab="playlist";playlist=p.id})
                         HorizontalDivider(color=Color.DarkGray)
                     }
                 }
             } else if(tab=="sources"){
-                Text("الصوتيات حسب التطبيق والمصدر",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                Text(UiLanguage.text("الصوتيات حسب التطبيق والمصدر"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 LazyColumn {
                     items(sourceLabels.filter{(sources[it]?.size?:0)>0},key={it}) { key ->
                         val name=when(key) {
-                            "WhatsApp"->"واتساب"
-                            "Downloads"->"التنزيلات"
-                            "Recordings"->"التسجيلات"
-                            "Telegram"->"تيليجرام"
-                            "Bluetooth"->"بلوتوث"
-                            "Music"->"الموسيقى"
-                            "Imported"->"المستوردة يدويًا"
+                            "WhatsApp"->UiLanguage.text("واتساب")
+                            "Downloads"->UiLanguage.text("التنزيلات")
+                            "Recordings"->UiLanguage.text("التسجيلات")
+                            "Telegram"->UiLanguage.text("تيليجرام")
+                            "Bluetooth"->UiLanguage.text("بلوتوث")
+                            "Music"->UiLanguage.text("الموسيقى")
+                            "Imported"->UiLanguage.text("المستوردة يدويًا")
                             else->key
                         }
                         ListItem(
                             headlineContent={Text(name,fontWeight=FontWeight.SemiBold)},
-                            supportingContent={Text("${sources[key]?.size?:0} مقطع صوتي")},
+                            supportingContent={Text(UiLanguage.text("${sources[key]?.size?:0} مقطع صوتي"))},
                             leadingContent={Text("▣",color=aqua)},
                             trailingContent={Text("‹",color=aqua)},
                             modifier=Modifier.clickable{source=key;search="";tab="source"}
@@ -625,7 +662,7 @@ private fun MusicApp(
             } else if(tab=="artists" || tab=="albums"){
                 val isArtist=tab=="artists"
                 val names=if(isArtist)artists else albums
-                Text(if(isArtist)"الفنانون" else "الألبومات",
+                Text(if(isArtist)UiLanguage.text("الفنانون") else UiLanguage.text("الألبومات"),
                     style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 LazyColumn{
                     items(names){name->
@@ -633,7 +670,7 @@ private fun MusicApp(
                             else songs.count{it.album.ifBlank{"غير معروف"}==name}
                         ListItem(
                             headlineContent={Text(name,fontWeight=FontWeight.SemiBold)},
-                            supportingContent={Text("$count مقطع")},
+                            supportingContent={Text(UiLanguage.text("$count مقطع"))},
                             leadingContent={Text(if(isArtist)"♩" else "▤",color=aqua)},
                             modifier=Modifier.clickable{
                                 if(isArtist){artist=name;tab="artist"}
@@ -644,11 +681,11 @@ private fun MusicApp(
                     }
                 }
             } else if(tab=="folders"){
-                Text("المجلدات (${folders.size})",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)
+                Text(UiLanguage.text("المجلدات (${folders.size})"),fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)
                 LazyColumn {
                     items(folders){name->
                         ListItem(headlineContent={Text(name)},supportingContent={
-                            Text("${songs.count{it.folder==name}} مقطع")
+                            Text(UiLanguage.text("${songs.count{it.folder==name}} مقطع"))
                         },leadingContent={Text("▣",color=aqua)},
                         modifier=Modifier.clickable{folder=name;tab="folder"})
                         HorizontalDivider(color=Color.DarkGray)
@@ -657,7 +694,7 @@ private fun MusicApp(
             } else if(tab=="effects"){
                 EffectsPanel(service)
             } else if(tab=="queue"){
-                Text("قائمة انتظار التشغيل (${queuedTracks.size})",
+                Text(UiLanguage.text("قائمة انتظار التشغيل (${queuedTracks.size})"),
                     style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 Text("اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار.",
                     color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
@@ -686,90 +723,93 @@ private fun MusicApp(
                 if(tab=="playlist"){
                     val p=playlists.firstOrNull{it.id==playlist}
                     Column {
-                        Text(p?.name ?: "قائمة التشغيل",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        Text(p?.name ?: UiLanguage.text("قائمة التشغيل"),fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                             Button(onClick={onPlayGroup(playlistUris.mapNotNull{byUri[it]},false)},enabled=playlistUris.isNotEmpty()){
-                                Text("تشغيل القائمة بالترتيب")
+                                Text(UiLanguage.text("تشغيل القائمة بالترتيب"))
                             }
                             OutlinedButton(onClick={onPlayGroup(playlistUris.mapNotNull{byUri[it]},true)},enabled=playlistUris.isNotEmpty()){
-                                Text("تشغيل القائمة عشوائيًا")
+                                Text(UiLanguage.text("تشغيل القائمة عشوائيًا"))
                             }
                             OutlinedButton(onClick={onExportM3u(playlist)},enabled=playlistUris.isNotEmpty()){
-                                Text("تصدير M3U8")
+                                Text(UiLanguage.text("تصدير M3U8"))
                             }
                             OutlinedButton(onClick={onShare(playlistUris.mapNotNull{byUri[it]})},enabled=playlistUris.isNotEmpty()){
-                                Text("مشاركة القائمة")
+                                Text(UiLanguage.text("مشاركة القائمة"))
                             }
-                            TextButton(onClick={playlistName=p?.name.orEmpty();playlistForEdit=playlist;creating=true}){Text("تعديل")}
-                            TextButton(onClick={confirmPlaylistDelete=true}){Text("حذف القائمة فقط")}
+                            TextButton(onClick={playlistName=p?.name.orEmpty();playlistForEdit=playlist;creating=true}){Text(UiLanguage.text("تعديل"))}
+                            TextButton(onClick={confirmPlaylistDelete=true}){Text(UiLanguage.text("حذف القائمة فقط"))}
                             OutlinedButton(onClick={selection=!selection;selected.clear()}){
-                                Text(if(selection)"إلغاء التحديد" else "تحديد مقاطع")
+                                Text(if(selection)UiLanguage.text("إلغاء التحديد") else UiLanguage.text("تحديد مقاطع"))
                             }
                         }
                     }
                 } else if(tab=="smart"){
                     Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
-                        Text("قوائم التشغيل الذكية",style=MaterialTheme.typography.titleLarge,
+                        Text(UiLanguage.text("قوائم التشغيل الذكية"),style=MaterialTheme.typography.titleLarge,
                             fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
-                        Text("ترتيب تلقائي حسب إضافة الملفات والاستماع الفعلي",
+                        Text(UiLanguage.text("ترتيب تلقائي حسب إضافة الملفات والاستماع الفعلي"),
                             color=Color.LightGray,style=MaterialTheme.typography.bodySmall,maxLines=1,
                             overflow=TextOverflow.Ellipsis)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                             horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                            listOf("recentlyAdded" to "المضافة حديثًا",
-                                "recentlyPlayed" to "المشغلة مؤخرًا",
-                                "mostPlayed" to "الأكثر تشغيلًا",
-                                "favorites" to "المفضلة").forEach{(id,label)->
+                            listOf("recentlyAdded" to UiLanguage.text("المضافة حديثًا"),
+                                "recentlyPlayed" to UiLanguage.text("المشغلة مؤخرًا"),
+                                "mostPlayed" to UiLanguage.text("الأكثر تشغيلًا"),
+                                "favorites" to UiLanguage.text("المفضلة")).forEach{(id,label)->
                                 FilterChip(selected=smartFilter==id,
                                     onClick={smartFilter=id;search="";selected.clear()},
                                     label={Text(label)})
                             }
                             OutlinedButton(onClick={selection=!selection;selected.clear()}){
-                                Text(if(selection)"إلغاء التحديد" else "تحديد مقاطع")
+                                Text(if(selection)UiLanguage.text("إلغاء التحديد") else UiLanguage.text("تحديد مقاطع"))
                             }
                         }
                         if(smartFilter=="mostPlayed"){
-                            Text("يُحتسب التشغيل بعد سماع جزء كافٍ من المقطع، وليس بمجرد النقر عليه.",
+                            Text(UiLanguage.text("يُحتسب التشغيل بعد سماع جزء كافٍ من المقطع، وليس بمجرد النقر عليه."),
                                 color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
                         }
                     }
                 } else if(tab=="favorites"){
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                        Text("المفضلة ♥",style=MaterialTheme.typography.titleLarge,
+                        Text(UiLanguage.text("المفضلة ♥"),style=MaterialTheme.typography.titleLarge,
                             fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
                         TextButton(onClick={selection=!selection;selected.clear()}){
-                            Text(if(selection)"إلغاء التحديد" else "تحديد")
+                            Text(if(selection)UiLanguage.text("إلغاء التحديد") else UiLanguage.text("تحديد"))
                         }
                     }
                 } else if(tab=="source"){
-                    Text("المصدر: $source (${filtered.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Text(UiLanguage.text("المصدر: $source (${filtered.size})"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="folder"){
-                    Text("المجلد: $folder",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Text(UiLanguage.text("المجلد: $folder"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="artist"){
-                    Text("الفنان: $artist",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Text(UiLanguage.text("الفنان: $artist"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="album"){
-                    Text("الألبوم: $album",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                    Text(UiLanguage.text("الألبوم: $album"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 } else if(tab=="smart"){
-                    Text("النتائج: "+filtered.size,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                } else Text("كل الصوتيات (${songs.size})",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),
+                    Text(UiLanguage.text("النتائج: ")+filtered.size,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                } else if(!isLandscape) Text(UiLanguage.text("كل الصوتيات (${songs.size})"),style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+                if(isLandscape) TextButton(onClick={showLandscapeFilters=!showLandscapeFilters}){
+                    Text(UiLanguage.text(if(showLandscapeFilters) "إخفاء البحث والفلاتر" else "البحث والفلاتر"))
+                }
+                if(!isLandscape || showLandscapeFilters) Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),
                     verticalAlignment=Alignment.CenterVertically){
                     OutlinedTextField(value=search,onValueChange={search=it},
-                        label={Text("بحث في الصوتيات",maxLines=1)},singleLine=true,
+                        label={Text(UiLanguage.text("بحث في الصوتيات"),maxLines=1)},singleLine=true,
                         modifier=Modifier.weight(1f).padding(vertical=6.dp))
                     Box{
                         OutlinedButton(onClick={showSortMenu=true},modifier=Modifier.heightIn(min=48.dp)){
-                            Text("فرز")
+                            Text(UiLanguage.text("فرز"))
                         }
                         DropdownMenu(expanded=showSortMenu,onDismissRequest={showSortMenu=false}){
                             listOf(
-                                TrackSearchEngine.Order.ORIGINAL to "ترتيب القائمة",
-                                TrackSearchEngine.Order.TITLE to "اسم المقطع",
-                                TrackSearchEngine.Order.ARTIST to "الفنان",
-                                TrackSearchEngine.Order.SOURCE to "المصدر",
-                                TrackSearchEngine.Order.RECENTLY_ADDED to "الأحدث إضافة",
-                                TrackSearchEngine.Order.DURATION to "المدة (الأطول)",
-                                TrackSearchEngine.Order.SIZE to "الحجم (الأكبر)"
+                                TrackSearchEngine.Order.ORIGINAL to UiLanguage.text("ترتيب القائمة"),
+                                TrackSearchEngine.Order.TITLE to UiLanguage.text("اسم المقطع"),
+                                TrackSearchEngine.Order.ARTIST to UiLanguage.text("الفنان"),
+                                TrackSearchEngine.Order.SOURCE to UiLanguage.text("المصدر"),
+                                TrackSearchEngine.Order.RECENTLY_ADDED to UiLanguage.text("الأحدث إضافة"),
+                                TrackSearchEngine.Order.DURATION to UiLanguage.text("المدة (الأطول)"),
+                                TrackSearchEngine.Order.SIZE to UiLanguage.text("الحجم (الأكبر)")
                             ).forEach{ (value,label) ->
                                 DropdownMenuItem(text={Text(label)},onClick={
                                     searchSort=value
@@ -785,27 +825,27 @@ private fun MusicApp(
                         horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick={
                             filtered.forEach{ if(it.uri !in selected)selected.add(it.uri) }
-                        },enabled=filtered.isNotEmpty()){Text("تحديد الكل ("+filtered.size+")")}
-                        TextButton(onClick={selected.clear()}){Text("إلغاء التحديد")}
-                        Text(chosen.size.toString()+" محدد",color=aqua,
+                        },enabled=filtered.isNotEmpty()){Text(UiLanguage.text("تحديد الكل (")+filtered.size+")")}
+                        TextButton(onClick={selected.clear()}){Text(UiLanguage.text("إلغاء التحديد"))}
+                        Text(chosen.size.toString()+UiLanguage.text(" محدد"),color=aqua,
                             modifier=Modifier.align(Alignment.CenterVertically))
                     }
                     if(chosen.isNotEmpty()){
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                             horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            Button(onClick={adding=chosen}){Text("إضافة إلى قائمة")}
-                            OutlinedButton(onClick={onShare(chosen)}){Text("مشاركة")}
-                            OutlinedButton(onClick={onPlayGroup(chosen,false)}){Text("تشغيل بالترتيب")}
-                            OutlinedButton(onClick={onPlayGroup(chosen,true)}){Text("تشغيل عشوائي")}
+                            Button(onClick={adding=chosen}){Text(UiLanguage.text("إضافة إلى قائمة"))}
+                            OutlinedButton(onClick={onShare(chosen)}){Text(UiLanguage.text("مشاركة"))}
+                            OutlinedButton(onClick={onPlayGroup(chosen,false)}){Text(UiLanguage.text("تشغيل بالترتيب"))}
+                            OutlinedButton(onClick={onPlayGroup(chosen,true)}){Text(UiLanguage.text("تشغيل عشوائي"))}
                             OutlinedButton(onClick={confirmPermanentDelete=chosen}){
-                                Text("حذف نهائي",color=Color(0xFFFFAAAA))
+                                Text(UiLanguage.text("حذف نهائي"),color=Color(0xFFFFAAAA))
                             }
                         }
                     }
                 }
                 if(filtered.isEmpty()) {
                     Box(Modifier.fillMaxWidth().padding(28.dp),contentAlignment=Alignment.Center){
-                        Text(if(songs.isEmpty())"لا توجد صوتيات متاحة. جرّب الاستيراد أو منح الصلاحيات." else "لا توجد نتائج",color=Color.LightGray)
+                        Text(if(songs.isEmpty())UiLanguage.text("لا توجد صوتيات متاحة. جرّب الاستيراد أو منح الصلاحيات.") else UiLanguage.text("لا توجد نتائج"),color=Color.LightGray)
                     }
                 }
                 LazyColumn(Modifier.fillMaxSize()){
@@ -837,16 +877,17 @@ private fun MusicApp(
                     if(visibleLimit<filtered.size) item(key="more-results") {
                         Column(Modifier.fillMaxWidth().padding(vertical=12.dp),
                             horizontalAlignment=Alignment.CenterHorizontally){
-                            Text("عرض ${minOf(visibleLimit,filtered.size)} من ${filtered.size}",
+                            Text(UiLanguage.text("عرض ${minOf(visibleLimit,filtered.size)} من ${filtered.size}"),
                                 color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                                OutlinedButton(onClick={visibleLimit=(visibleLimit+200).coerceAtMost(filtered.size)}){Text("عرض المزيد")}
-                                TextButton(onClick={visibleLimit=filtered.size}){Text("عرض الكل")}
+                                OutlinedButton(onClick={visibleLimit=(visibleLimit+200).coerceAtMost(filtered.size)}){Text(UiLanguage.text("عرض المزيد"))}
+                                TextButton(onClick={visibleLimit=filtered.size}){Text(UiLanguage.text("عرض الكل"))}
                             }
                         }
                     }
                 }
             }
+        }
         }
     }
 }
@@ -870,7 +911,7 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
                 Modifier.size(48.dp)
                     .background(Brush.linearGradient(listOf(purple,aqua)),RoundedCornerShape(12.dp))
                     .clickable(onClick=onPlay)
-                    .semantics{contentDescription="تشغيل ${track.title}"},
+                    .semantics{contentDescription=UiLanguage.text("تشغيل ${track.title}")},
                 contentAlignment=Alignment.Center
             ){Text("▶",color=deepBlue,fontWeight=FontWeight.Bold)}
         }
@@ -890,41 +931,41 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
         }
         IconButton(
             onClick=onAdd,
-            modifier=Modifier.size(48.dp).semantics{contentDescription="إضافة ${track.title} إلى قائمة"}
+            modifier=Modifier.size(48.dp).semantics{contentDescription=UiLanguage.text("إضافة ${track.title} إلى قائمة")}
         ){Text("+",color=aqua,style=MaterialTheme.typography.headlineSmall)}
         Box{
             IconButton(
                 onClick={menuExpanded=true},
-                modifier=Modifier.size(48.dp).semantics{contentDescription="خيارات ${track.title}"}
+                modifier=Modifier.size(48.dp).semantics{contentDescription=UiLanguage.text("خيارات ${track.title}")}
             ){Text("⋮",color=Color.White,fontSize=26.sp)}
             DropdownMenu(
                 expanded=menuExpanded,
                 onDismissRequest={menuExpanded=false}
             ){
                 DropdownMenuItem(
-                    text={Text(if(favorite)"إزالة من المفضلة" else "إضافة إلى المفضلة")},
+                    text={Text(if(favorite)UiLanguage.text("إزالة من المفضلة") else UiLanguage.text("إضافة إلى المفضلة"))},
                     onClick={menuExpanded=false;onFavorite()}
                 )
                 DropdownMenuItem(
-                    text={Text("مشاركة المقطع")},
+                    text={Text(UiLanguage.text("مشاركة المقطع"))},
                     onClick={menuExpanded=false;onShare()}
                 )
                 if(showQueueActions){
-                    DropdownMenuItem(text={Text("تشغيل التالي")},
+                    DropdownMenuItem(text={Text(UiLanguage.text("تشغيل التالي"))},
                         onClick={menuExpanded=false;onPlayNext()})
-                    DropdownMenuItem(text={Text("إضافة إلى قائمة الانتظار")},
+                    DropdownMenuItem(text={Text(UiLanguage.text("إضافة إلى قائمة الانتظار"))},
                         onClick={menuExpanded=false;onEnqueue()})
                 }
                 DropdownMenuItem(
-                    text={Text("حذف الملف نهائيًا من الجهاز",color=Color(0xFFFFAAAA))},
+                    text={Text(UiLanguage.text("حذف الملف نهائيًا من الجهاز"),color=Color(0xFFFFAAAA))},
                     onClick={menuExpanded=false;onPermanentDelete()}
                 )
                 if(inPlaylist){
                     HorizontalDivider()
-                    DropdownMenuItem(text={Text("تحريك لأعلى")},onClick={menuExpanded=false;onUp()})
-                    DropdownMenuItem(text={Text("تحريك لأسفل")},onClick={menuExpanded=false;onDown()})
+                    DropdownMenuItem(text={Text(UiLanguage.text("تحريك لأعلى"))},onClick={menuExpanded=false;onUp()})
+                    DropdownMenuItem(text={Text(UiLanguage.text("تحريك لأسفل"))},onClick={menuExpanded=false;onDown()})
                     DropdownMenuItem(
-                        text={Text("إزالة من القائمة فقط",color=Color(0xFFFFB0B0))},
+                        text={Text(UiLanguage.text("إزالة من القائمة فقط"),color=Color(0xFFFFB0B0))},
                         onClick={menuExpanded=false;onRemove()}
                     )
                 }
@@ -949,34 +990,34 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
             Row(verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f).clickable(onClick=onExpand)){
                     Text(track.title,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    Text(if(expanded)track.artist else "اضغط لفتح المشغل",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
+                    Text(if(expanded)track.artist else UiLanguage.text("اضغط لفتح المشغل"),style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
                 }
                 TextButton(onClick={service?.previous()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                    .semantics{contentDescription="المقطع السابق"}){Text("⏮")}
+                    .semantics{contentDescription=UiLanguage.text("المقطع السابق")}){Text("⏮")}
                 TextButton(onClick={if(MusicRuntime.playing)service?.pause() else service?.resume()},
                     modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                        .semantics{contentDescription=if(MusicRuntime.playing)"إيقاف مؤقت" else "تشغيل"}){
+                        .semantics{contentDescription=if(MusicRuntime.playing)UiLanguage.text("إيقاف مؤقت") else UiLanguage.text("تشغيل")}){
                     Text(if(MusicRuntime.playing)"⏸" else "▶")
                 }
                 TextButton(onClick={service?.next()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                    .semantics{contentDescription="المقطع التالي"}){Text("⏭")}
+                    .semantics{contentDescription=UiLanguage.text("المقطع التالي")}){Text("⏭")}
             }
             if(expanded){
                 Box(Modifier.fillMaxWidth().padding(vertical=6.dp),contentAlignment=Alignment.Center){
-                    if(cover!=null) Image(cover!!.asImageBitmap(),"غلاف المقطع",Modifier.size(144.dp),contentScale=ContentScale.Crop)
+                    if(cover!=null) Image(cover!!.asImageBitmap(),UiLanguage.text("غلاف المقطع"),Modifier.size(144.dp),contentScale=ContentScale.Crop)
                     else Box(Modifier.size(112.dp).background(deepBlue,RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){
                         Text("♪",fontSize=52.sp,color=aqua)
                     }
                 }
                 Row(verticalAlignment=Alignment.CenterVertically){
-                    Text("كلمات الأغنية LRC",Modifier.weight(1f),fontWeight=FontWeight.Medium)
-                    TextButton(onClick={onImportLyrics(track)}){Text("استيراد LRC")}
+                    Text(UiLanguage.text("كلمات الأغنية LRC"),Modifier.weight(1f),fontWeight=FontWeight.Medium)
+                    TextButton(onClick={onImportLyrics(track)}){Text(UiLanguage.text("استيراد LRC"))}
                 }
                 if(lyrics.isNotEmpty()){
                     val index=LrcLyrics.activeIndex(lyrics,MusicRuntime.position)
                     Text(lyrics.getOrNull(index)?.text ?: lyrics.first().text,color=aqua,
                         modifier=Modifier.fillMaxWidth().padding(bottom=6.dp),maxLines=3)
-                } else Text("يمكن اختيار ملف LRC متزامن مع هذا المقطع",color=Color.LightGray,
+                } else Text(UiLanguage.text("يمكن اختيار ملف LRC متزامن مع هذا المقطع"),color=Color.LightGray,
                     style=MaterialTheme.typography.bodySmall)
                 val end=MusicRuntime.duration.coerceAtLeast(1L)
                 var drag by remember{mutableFloatStateOf(-1f)}
@@ -988,9 +1029,9 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                    TextButton(onClick={onShare(track)}){Text("مشاركة المقطع")}
-                    TextButton(onClick={service?.changeShuffle()}){Text(if(MusicRuntime.shuffle)"خلط ✓" else "خلط")}
-                    TextButton(onClick={service?.changeRepeat()}){Text(when(MusicRuntime.repeat){1->"تكرار 1";2->"تكرار الكل";else->"بدون تكرار"})}
+                    TextButton(onClick={onShare(track)}){Text(UiLanguage.text("مشاركة المقطع"))}
+                    TextButton(onClick={service?.changeShuffle()}){Text(if(MusicRuntime.shuffle)UiLanguage.text("خلط ✓") else UiLanguage.text("خلط"))}
+                    TextButton(onClick={service?.changeRepeat()}){Text(when(MusicRuntime.repeat){1->UiLanguage.text("تكرار 1");2->UiLanguage.text("تكرار الكل");else->UiLanguage.text("بدون تكرار")})}
                     TextButton(onClick={service?.changeSpeed(if(MusicRuntime.speed>=2f)1f else MusicRuntime.speed+.25f)}){
                         Text("${MusicRuntime.speed}×")
                     }
@@ -1010,24 +1051,24 @@ private fun EffectsPanel(service:MusicService?){
     val eqBands=remember(service,eqRevision){service?.eqBands().orEmpty()}
     LazyColumn(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(16.dp),
         contentPadding=PaddingValues(vertical=12.dp)){
-        item{Text("مضخم الصوت والمؤثرات",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.headlineSmall,color=aqua)}
-        item{Text("المؤثرات تعمل على جلسة هذا التطبيق فقط. تضخيم الصوت قد يسبب تشويهًا أو ضررًا للسمع؛ ابدأ بمستوى منخفض.",color=Color(0xFFFFCF91))}
-        item{Text(if(service==null)"شغّل مقطعًا لتهيئة جلسة الصوت" else "دعم هذا الجهاز: مضخم ${if(support?.loudness==true)"✓" else "غير متاح"} • Bass ${if(support?.bass==true)"✓" else "غير متاح"} • EQ ${if(support?.equalizer==true)"✓" else "غير متاح"}",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)}
+        item{Text(UiLanguage.text("مضخم الصوت والمؤثرات"),fontWeight=FontWeight.Bold,style=MaterialTheme.typography.headlineSmall,color=aqua)}
+        item{Text(UiLanguage.text("المؤثرات تعمل على جلسة هذا التطبيق فقط. تضخيم الصوت قد يسبب تشويهًا أو ضررًا للسمع؛ ابدأ بمستوى منخفض."),color=Color(0xFFFFCF91))}
+        item{Text(if(service==null)UiLanguage.text("شغّل مقطعًا لتهيئة جلسة الصوت") else "دعم هذا الجهاز: مضخم ${if(support?.loudness==true)"✓" else "غير متاح"} • Bass ${if(support?.bass==true)"✓" else "غير متاح"} • EQ ${if(support?.equalizer==true)"✓" else "غير متاح"}",color=Color.LightGray,style=MaterialTheme.typography.bodySmall)}
         item {
-            Text("مضخم الصوت / Loudness (${MusicRuntime.boost}%)")
+            Text(UiLanguage.text("مضخم الصوت / Loudness (${MusicRuntime.boost}%)"))
             Slider(value=MusicRuntime.boost.toFloat(),onValueChange={service?.setBoost(it.toInt())},valueRange=0f..100f,enabled=support?.loudness==true)
-            Text("الحد البرمجي: +6 dB؛ قد يكون التأثير غير متاح على بعض الأجهزة.",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
+            Text(UiLanguage.text("الحد البرمجي: +6 dB؛ قد يكون التأثير غير متاح على بعض الأجهزة."),style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
         }
         item {
-            Text("تعزيز الجهير Bass Boost (${MusicRuntime.bass}%)")
+            Text(UiLanguage.text("تعزيز الجهير Bass Boost (${MusicRuntime.bass}%)"))
             Slider(value=MusicRuntime.bass.toFloat(),onValueChange={service?.setBass(it.toInt())},valueRange=0f..100f,enabled=support?.bass==true)
         }
         item {
             Row(verticalAlignment=Alignment.CenterVertically){
-                Text("Equalizer (حسب دعم الجهاز)",modifier=Modifier.weight(1f))
+                Text(UiLanguage.text("Equalizer (حسب دعم الجهاز)"),modifier=Modifier.weight(1f))
                 Switch(checked=support?.equalizer==true && MusicRuntime.equalizerEnabled,onCheckedChange={service?.enableEqualizer(it)},enabled=support?.equalizer==true)
             }
-            Text(service?.equalizerInfo() ?: "المؤثرات بانتظار اتصال المحرك",style=MaterialTheme.typography.bodySmall)
+            Text(service?.equalizerInfo() ?: UiLanguage.text("المؤثرات بانتظار اتصال المحرك"),style=MaterialTheme.typography.bodySmall)
         }
         item {
             Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
@@ -1037,9 +1078,9 @@ private fun EffectsPanel(service:MusicService?){
             }
         }
         item {
-            Text("ضبط الترددات يدويًا",fontWeight=FontWeight.Bold)
+            Text(UiLanguage.text("ضبط الترددات يدويًا"),fontWeight=FontWeight.Bold)
             if(eqBands.isEmpty()){
-                Text("الضبط اليدوي غير مدعوم على هذا الجهاز",color=Color.LightGray)
+                Text(UiLanguage.text("الضبط اليدوي غير مدعوم على هذا الجهاز"),color=Color.LightGray)
             } else {
                 eqBands.forEach { band ->
                     val hz=if(band.centerHz>=1000)
@@ -1055,18 +1096,18 @@ private fun EffectsPanel(service:MusicService?){
                         valueRange=band.minMb.toFloat()..band.maxMb.toFloat()
                     )
                 }
-                Text("نطاق الضبط محدود إلى ±6 dB لتقليل التشويه",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
+                Text(UiLanguage.text("نطاق الضبط محدود إلى ±6 dB لتقليل التشويه"),style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
             }
         }
         item {
-            Text("مؤقت النوم")
+            Text(UiLanguage.text("مؤقت النوم"))
             Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
                 listOf(0,5,15,30,45,60,90).forEach{minutes->
                     FilterChip(selected=sleepMinutes==minutes,onClick={sleepMinutes=minutes;service?.setSleep(minutes)},
-                        label={Text(if(minutes==0)"إيقاف" else "$minutes دقيقة")})
+                        label={Text(if(minutes==0)UiLanguage.text("إيقاف") else "$minutes دقيقة")})
                 }
             }
         }
-        item{ Text("مضخم الصوت بحد أقصى +6 dB، ومجال EQ بحد ±6 dB أو أقل إذا فرض الجهاز ذلك. الدعم والتأثير الفعلي يختلفان باختلاف الهاتف والخرج الصوتي.",color=Color.LightGray)}
+        item{ Text(UiLanguage.text("مضخم الصوت بحد أقصى +6 dB، ومجال EQ بحد ±6 dB أو أقل إذا فرض الجهاز ذلك. الدعم والتأثير الفعلي يختلفان باختلاف الهاتف والخرج الصوتي."),color=Color.LightGray)}
     }
 }

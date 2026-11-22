@@ -1,0 +1,20 @@
+{
+  "version": "0.4.6-beta.8",
+  "kind": "STATIC_SOURCE_ONLY",
+  "pass": 12,
+  "total": 12,
+  "checks": {
+    "version_code_19": true,
+    "version_name_beta8": true,
+    "prev_next_56dp": true,
+    "center_68dp": true,
+    "a11y_play_pause_ar_en": true,
+    "skip_10_seconds": true,
+    "seek_clamped": true,
+    "seek_sync_session": true,
+    "notification_restores_queue": true,
+    "position_checkpoint_10s": true,
+    "existing_media_controls": true,
+    "large_accessibility_targets_fit_320": true
+  }
+}

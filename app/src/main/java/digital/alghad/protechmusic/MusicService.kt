@@ -75,12 +75,20 @@ class MusicService : Service() {
         }
     }
     private var sleepUntil=0L
+    private var lastPositionCheckpoint=0L
     private val tick=object:Runnable {
         override fun run() {
             if(::player.isInitialized) {
                 MusicRuntime.position=player.currentPosition.coerceAtLeast(0L)
                 MusicRuntime.duration=player.duration.takeIf{it>0} ?: MusicRuntime.nowPlaying?.durationMs ?: 0L
-                listening.tick(SystemClock.elapsedRealtime())
+                val elapsed=SystemClock.elapsedRealtime()
+                listening.tick(elapsed)
+                // Store only the position periodically; avoid serializing a large queue every tick.
+                if(player.isPlaying && elapsed-lastPositionCheckpoint>=10_000L) {
+                    preferences.edit().putLong("position",MusicRuntime.position)
+                        .putInt("index",player.currentMediaItemIndex.coerceAtLeast(0)).apply()
+                    lastPositionCheckpoint=elapsed
+                }
                 if(sleepUntil>0L && SystemClock.elapsedRealtime()>=sleepUntil){
                     sleepUntil=0L; pause()
                 }
@@ -149,6 +157,8 @@ class MusicService : Service() {
 
     override fun onBind(intent:Intent?):IBinder=binder
     override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
+        // A notification action can arrive after Android recreates this service.
+        if(intent?.action!=null && player.mediaItemCount==0) restore()
         when(intent?.action) {
             "PLAY" -> resume()
             "PAUSE" -> pause()
@@ -223,7 +233,16 @@ class MusicService : Service() {
     fun pause(){if(::player.isInitialized)player.pause();remember()}
     fun next(){if(player.hasNextMediaItem())player.seekToNextMediaItem() else if (MusicRuntime.repeat==2) player.seekTo(0,0)}
     fun previous(){if(player.currentPosition>3500L)player.seekTo(0L) else if(player.hasPreviousMediaItem())player.seekToPreviousMediaItem() else player.seekTo(0L)}
-    fun seek(ms:Long){player.seekTo(ms.coerceAtLeast(0L))}
+    fun seek(ms:Long){
+        val duration=player.duration.takeIf{it>0L && it!=C.TIME_UNSET}
+        player.seekTo(if(duration!=null)ms.coerceIn(0L,duration) else ms.coerceAtLeast(0L))
+        updateSession()
+    }
+    fun seekRelative(deltaMs:Long){
+        val current=player.currentPosition.coerceAtLeast(0L)
+        val safeDelta=deltaMs.coerceIn(-60_000L,60_000L)
+        seek((current+safeDelta).coerceAtLeast(0L))
+    }
     fun setShuffle(enabled:Boolean) {
         player.shuffleModeEnabled=enabled
         MusicRuntime.shuffle=enabled

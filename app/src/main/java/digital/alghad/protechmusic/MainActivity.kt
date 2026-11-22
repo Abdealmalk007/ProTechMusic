@@ -1036,17 +1036,33 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
             Row(verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f).clickable(onClick=onExpand)){
                     Text(track.title,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    Text(if(expanded)track.artist else UiLanguage.text("اضغط لفتح المشغل"),style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
+                    Text(if(expanded)track.artist else if(MusicRuntime.playing)
+                        (if(UiLanguage.english)"Playing • Open player" else "قيد التشغيل • افتح المشغل")
+                        else (if(UiLanguage.english)"Paused • Tap ▶ to resume" else "متوقف مؤقتًا • ▶ للاستئناف"),
+                        style=MaterialTheme.typography.bodySmall,color=Color.LightGray,
+                        maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
-                TextButton(onClick={service?.previous()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                    .semantics{contentDescription=UiLanguage.text("المقطع السابق")}){Text("⏮")}
-                TextButton(onClick={if(MusicRuntime.playing)service?.pause() else service?.resume()},
-                    modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                        .semantics{contentDescription=if(MusicRuntime.playing)UiLanguage.text("إيقاف مؤقت") else UiLanguage.text("تشغيل")}){
-                    Text(if(MusicRuntime.playing)"⏸" else "▶")
+                IconButton(onClick={service?.previous()},
+                    modifier=Modifier.size(56.dp).background(Color(0xFF393861),RoundedCornerShape(16.dp))
+                        .semantics{contentDescription=if(UiLanguage.english)"Previous track" else "المقطع السابق"},
+                    enabled=service!=null){Text("⏮",fontSize=29.sp,color=Color.White)}
+                Spacer(Modifier.width(4.dp))
+                Button(onClick={if(MusicRuntime.playing)service?.pause() else service?.resume()},
+                    modifier=Modifier.size(68.dp)
+                        .semantics{contentDescription=if(MusicRuntime.playing)
+                            (if(UiLanguage.english)"Pause playback" else "إيقاف مؤقت")
+                            else (if(UiLanguage.english)"Resume playback" else "استئناف التشغيل")},
+                    enabled=service!=null,
+                    shape=RoundedCornerShape(22.dp),
+                    colors=ButtonDefaults.buttonColors(containerColor=aqua,contentColor=deepBlue),
+                    contentPadding=PaddingValues(0.dp)){
+                    Text(if(MusicRuntime.playing)"⏸" else "▶",fontSize=33.sp,fontWeight=FontWeight.Bold)
                 }
-                TextButton(onClick={service?.next()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
-                    .semantics{contentDescription=UiLanguage.text("المقطع التالي")}){Text("⏭")}
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick={service?.next()},
+                    modifier=Modifier.size(56.dp).background(Color(0xFF393861),RoundedCornerShape(16.dp))
+                        .semantics{contentDescription=if(UiLanguage.english)"Next track" else "المقطع التالي"},
+                    enabled=service!=null){Text("⏭",fontSize=29.sp,color=Color.White)}
             }
             if(expanded){
                 Box(Modifier.fillMaxWidth().padding(vertical=6.dp),contentAlignment=Alignment.Center){
@@ -1072,6 +1088,17 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
                     Text(readableTime(MusicRuntime.position),style=MaterialTheme.typography.labelSmall)
                     Text(readableTime(MusicRuntime.duration),style=MaterialTheme.typography.labelSmall)
+                }
+                Row(Modifier.fillMaxWidth().padding(top=4.dp),
+                    horizontalArrangement=Arrangement.spacedBy(12.dp)){
+                    OutlinedButton(onClick={service?.seekRelative(-10_000L)},
+                        modifier=Modifier.weight(1f).heightIn(min=48.dp),enabled=service!=null){
+                        Text(if(UiLanguage.english)"−10 sec" else "−10 ثوانٍ")
+                    }
+                    OutlinedButton(onClick={service?.seekRelative(10_000L)},
+                        modifier=Modifier.weight(1f).heightIn(min=48.dp),enabled=service!=null){
+                        Text(if(UiLanguage.english)"+10 sec" else "+10 ثوانٍ")
+                    }
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement=Arrangement.spacedBy(6.dp)){

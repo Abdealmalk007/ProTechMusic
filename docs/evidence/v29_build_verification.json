@@ -1,0 +1,19 @@
+{
+  "version": "0.4.6-beta.8",
+  "gradle": "BUILD SUCCESSFUL",
+  "required_tasks": [
+    ":app:testDebugUnitTest",
+    ":app:assembleDebug",
+    ":app:assembleRelease"
+  ],
+  "jvm_tests": {
+    "tests": 54,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "xml_reports": 9
+  },
+  "release_unsigned_apk_bytes": 8984540,
+  "debug_apk_bytes": 12121551,
+  "evidence": "app/build/test-results/testDebugUnitTest/TEST-*.xml"
+}

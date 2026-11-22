@@ -2,7 +2,7 @@
     "project":  "ProTech Music",
     "checkpoint":  "HANDOFF_V26",
     "date":  "2026-11-22",
-    "status":  "BETA6_GITHUB_AND_SITE_LIVE_RC_STILL_BLOCKED",
+    "status":  "BETA6_LIVE_SIGNED_UPGRADE_QA_BLOCKED_ON_CONCURRENT_AVD_MEMORY",
     "root":  "E:\\ProTech\\ProTechMusic",
     "website_root":  "E:\\ProTech\\ProTechMusicSiteRelease_20261121",
     "current_version":  "0.4.4-beta.6",
@@ -60,7 +60,8 @@
                                 "Beta6 Gradle assembleRelease BUILD SUCCESSFUL; versionCode17 and v2/v3 APK signatures PASS with unchanged release certificate",
                                 "Published GitHub prerelease v0.4.4-beta.6 with signed APK and SHA256SUMS; hash 88B3AF75DE759B08986BC123482AE434B6227E7BF47FFDC0A0ED2A0D825D4BA5",
                                 "Published bilingual alghad.digital program pages commit f0eea7c, Pages run 45010415066 SUCCESS; live AR/EN 200, version/sha/download all match",
-                                "Signed-vs-debug install incompatibility on QA emulator correctly detected without uninstalling debug data"
+                                "Signed-vs-debug install incompatibility on QA emulator correctly detected without uninstalling debug data",
+                                "Attempted signed Beta5-to-Beta6 upgrade on new AVD, blocked before Android boot by concurrent AVD and host RAM pressure; stopped only the new AVD, host RAM recovered. No signed-to-signed PASS claim."
                             ],
     "evidence":  [
                      "docs/QA_F14_LIBRARY_PERFORMANCE_20261122.md",
@@ -100,7 +101,8 @@
                     "Complete long-run memory and ANR performance QA",
                     "Complete physical battery, headset/Bluetooth, telephony interruption and audio focus QA",
                     "Install signed APK on clean emulator without touching DEBUG QA data; carry out signed in-place upgrade",
-                    "Close F14/F15 RC requirements then 15 Stage B production gates"
+                    "Close F14/F15 RC requirements then 15 Stage B production gates",
+                    "On one isolated bootable AVD verify signed Beta5 -\u003e signed Beta6 in-place upgrade and retained English preference, no uninstall"
                 ],
     "next_phase":  "F14_LARGE_MEDIA_PHYSICAL_HARDWARE_THEN_F15_RC",
     "safeguards":  [
@@ -111,7 +113,7 @@
                        "Never delete user audio",
                        "Do not call beta Stable or Final"
                    ],
-    "resume":  "Resume from docs/HANDOFF_V26.json and docs/REMAINING_2X15_STATUS_V23.json. Beta6 fully published on GitHub and bilingual live site. Stage A6/15=40%, B0/15=0%, original44% F86.7% R0. Large real-media and physical-device gates BLOCKED; no stable/final claim. Use separate clean AVD for signed install. Preserve all user audio and signing key.",
+    "resume":  "Resume from HANDOFF_V26 and QA_RELEASE_V26. Beta6 v0.4.4-beta.6 published, signed v2/v3 cert matches Beta5, website live. Upgrade QA signed-to-signed not done due concurrent emulator memory pressure. Stage A 6/15=40, Stage B0, official overall44 F86.7 R0; physical battery/headset and real app-visible 10k/50k pending. Do not publish final stable.",
     "github_release":  "https://github.com/Abdealmalk007/ProTechMusic/releases/tag/v0.4.4-beta.6",
     "website_commit":  "f0eea7c133839f818eb3ed368a562832d3c5eb08",
     "qa_commit":  "2f93c7d347f93de496071a23d6ee006046ca8501",

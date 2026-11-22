@@ -1,0 +1,6 @@
+﻿{
+    "jvm_tests":  53,
+    "failures":  0,
+    "errors":  0,
+    "disclaimer":  "JVM synthetic entries, one measurement per size; heap deltas include allocator and GC noise."
+}

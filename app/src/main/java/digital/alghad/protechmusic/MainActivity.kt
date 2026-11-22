@@ -64,6 +64,7 @@ class MainActivity:ComponentActivity() {
         }
     }
     private var songs by mutableStateOf<List<AudioTrack>>(emptyList())
+    private var preparedLibrary by mutableStateOf(TrackSearchEngine.prepare(emptyList()))
     private val uiPreferences by lazy { getSharedPreferences("ui_language", MODE_PRIVATE) }
     private var musicService by mutableStateOf<MusicService?>(null)
     private var allowed by mutableStateOf(false)
@@ -252,7 +253,7 @@ class MainActivity:ComponentActivity() {
             androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides
                 if(UiLanguage.english) LayoutDirection.Ltr else LayoutDirection.Rtl) {
                 MusicApp(
-                    songs=songs,allowed=allowed,busy=busy,error=failure,
+                    songs=songs,preparedSearch=preparedLibrary,allowed=allowed,busy=busy,error=failure,
                     service=musicService,db=db,revision=refreshCounter,
                     onGrant={grantPermission()},onRescan={refresh()},onPick={pickAudio.launch(arrayOf("audio/*"))},
                     onToggleLanguage={
@@ -335,7 +336,12 @@ class MainActivity:ComponentActivity() {
         if(busy)return
         busy=true;failure=""
         scope.launch{
-            try { songs=repository.scan() }
+            try {
+                val discovered=repository.scan()
+                val searchIndex=withContext(Dispatchers.Default){TrackSearchEngine.prepare(discovered)}
+                preparedLibrary=searchIndex
+                songs=discovered
+            }
             catch(e:Exception) {failure=e.localizedMessage ?: "تعذر قراءة الملفات" }
             finally{busy=false;refreshCounter++}
         }
@@ -356,7 +362,8 @@ private fun readableTime(ms:Long):String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MusicApp(
-    songs:List<AudioTrack>,allowed:Boolean,busy:Boolean,error:String,
+    songs:List<AudioTrack>,preparedSearch:TrackSearchEngine.PreparedLibrary,
+    allowed:Boolean,busy:Boolean,error:String,
     service:MusicService?,db:MusicStore,revision:Int,
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,onToggleLanguage:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
@@ -425,7 +432,7 @@ private fun MusicApp(
             "album" -> songs.filter{it.album.ifBlank{"غير معروف"}==album}
             else -> songs
         }
-        TrackSearchEngine.search(base,search,searchSort)
+        preparedSearch.search(base,search,searchSort)
     }
     if(importReport!=null){
         AlertDialog(onDismissRequest=onDismissReport,title={Text(UiLanguage.text("نتيجة استيراد M3U8"))},

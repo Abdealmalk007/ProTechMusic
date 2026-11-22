@@ -60,30 +60,7 @@ class AudioRepository(private val context: Context, private val store: MusicStor
         try {
             context.contentResolver.query(collection,columns.toTypedArray(),null,null,
                 "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC")?.use { cursor ->
-                val id = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val title = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val filename = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
-                val artist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val album = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-                val duration = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val size = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-                val added = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
-                val pathColumn = if (Build.VERSION.SDK_INT>=29)
-                    cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH)
-                    else cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
-                while(cursor.moveToNext()) {
-                    val fileSize = cursor.getLong(size)
-                    if(fileSize <= 0L) continue
-                    val rawPath = if(pathColumn>=0) cursor.getString(pathColumn).orEmpty() else ""
-                    val folder = rawPath.trimEnd('/').substringAfterLast('/',"Other")
-                    val uri = ContentUris.withAppendedId(collection,cursor.getLong(id)).toString()
-                    found[uri] = AudioTrack(uri, cursor.getString(title).orEmpty()
-                        .ifBlank { cursor.getString(filename).orEmpty() },
-                        cursor.getString(artist).orEmpty().takeUnless { it=="<unknown>" }.orEmpty(),
-                        cursor.getString(album).orEmpty(),
-                        folder,SourceClassifier.classify(rawPath),
-                        cursor.getLong(duration),fileSize,cursor.getLong(added))
-                }
+                AudioCursorReader.appendTo(cursor, collection, found)
             }
         } catch (_: SecurityException) {
             // Permission may be denied or revoked; SAF imports below still remain accessible.

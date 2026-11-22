@@ -21,6 +21,7 @@ Date: 2026-11-22. Status: BETA/PREVIEW, not final.
 - Official release facts verified through GitHub API, four local site test suites PASS.
 - Site URLs: https://alghad.digital/programs/protech-music/ and https://alghad.digital/en/programs/protech-music/.
 - GitHub Pages deployment for commit d6477b4 completed SUCCESS (run 44992771944). Subsequent LIVE verification: both Arabic and English URL returned HTTP 200 and contained version 0.4.1-beta.3, exact signed APK filename and matching SHA256 C58F4A242C8813F2FE67EDC47EAFF5DB68E86411EFF61901A988BD4E28AC2528.
+- Signed APK **in-place upgrade PASS** on separate API35 QA emulator from signed v0.4.0-beta.2 (`versionCode=13`) to v0.4.1-beta.3 (`versionCode=14`) via `adb install -r` -> `Success`, no uninstall or app-data wipe. `am start` launched `MainActivity` with active PID 1869 and no AndroidRuntime FATAL EXCEPTION in inspected log window. Screenshot: `docs/evidence/f13/beta3_signed_update_api35.png`; first library refresh showed zero tracks pending scanning, not a full media playback regression test.
 
 ## Progress
 - Original product roadmap 11/25 = 44% (unchanged).

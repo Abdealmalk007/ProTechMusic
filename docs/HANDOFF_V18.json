@@ -32,15 +32,17 @@
                                   "GitHub signed prerelease with 2 assets created",
                                   "GitHub website commit d6477b4 pushed",
                                   "All 4 site Node test suites passed; release-facts SHA from official GitHub verified",
-                                  "GitHub Pages deploy run 44992771944 SUCCESS; live AR/EN HTTP200 and new APK+SHA verified"
+                                  "GitHub Pages deploy run 44992771944 SUCCESS; live AR/EN HTTP200 and new APK+SHA verified",
+                                  "Signed beta2 -\u003e beta3 in-place API35 upgrade success, package versionCode 13 -\u003e 14, app launched PID 1869"
                               ],
     "pending_this_session":  [
-                                 "Signed beta3 upgrade/fresh install smoke on API35 AVD pending completion"
+
                              ],
     "evidence":  [
                      "docs/QA_F13_RESPONSIVE_BILINGUAL_20261122.md",
                      "docs/QA_SIGNED_BETA3_RELEASE_20261122.md",
-                     "docs/evidence/f13/"
+                     "docs/evidence/f13/",
+                     "docs/evidence/f13/beta3_signed_update_api35.png"
                  ],
     "safeguards":  [
                        "Do not increase official44% without full evidence for original tasks",

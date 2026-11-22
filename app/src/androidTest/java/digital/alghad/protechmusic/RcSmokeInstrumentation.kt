@@ -14,13 +14,20 @@ import android.util.Log
  * Non-destructive: only package metadata and launcher window are inspected.
  */
 class RcSmokeInstrumentation : Instrumentation() {
+    private var requestedMode: String? = null
+
     override fun onCreate(arguments: Bundle?) {
+        requestedMode = arguments?.getString("mode")
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         super.onStart()
+        if (requestedMode == "playback") {
+            RcPlaybackHarness(this).run()
+            return
+        }
         val report = Bundle()
         var launched: Activity? = null
         try {

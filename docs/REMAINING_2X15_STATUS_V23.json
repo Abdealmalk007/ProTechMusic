@@ -2,7 +2,7 @@
     "updated_at":  "2026-11-22",
     "project":  "ProTech Music",
     "checkpoint":  "HANDOFF_V23",
-    "current_beta":  "v0.4.3-beta.5",
+    "current_beta":  "v0.4.4-beta.6",
     "source_root":  "E:\\ProTech\\ProTechMusic",
     "strategy":  "Two sequential stages, exactly 15 evidence-gated checks each",
     "official_progress":  {
@@ -68,20 +68,22 @@
                                      {
                                          "id":  "A06",
                                          "title":  "10000-file real media scan",
-                                         "status":  "PLANNED",
+                                         "status":  "BLOCKED",
                                          "evidence":  [
-
+                                                          "docs/QA_V25_REAL_MEDIA_PLAYBACK_20261122.md",
+                                                          "docs/evidence/v25/f14_real_10000_scan_only.error.txt"
                                                       ],
-                                         "blocker":  null
+                                         "blocker":  "Real 10k/50k app-visible MediaStore fixture not verified: shell-owned bulk WAV files remained IS_PENDING=1; Android hides pending files. Data creation count is not scan PASS."
                                      },
                                      {
                                          "id":  "A07",
                                          "title":  "50000-file real media scan",
-                                         "status":  "PLANNED",
+                                         "status":  "BLOCKED",
                                          "evidence":  [
-
+                                                          "docs/QA_V25_REAL_MEDIA_PLAYBACK_20261122.md",
+                                                          "docs/evidence/v25/f14_real_10000_scan_only.error.txt"
                                                       ],
-                                         "blocker":  null
+                                         "blocker":  "Real 10k/50k app-visible MediaStore fixture not verified: shell-owned bulk WAV files remained IS_PENDING=1; Android hides pending files. Data creation count is not scan PASS."
                                      },
                                      {
                                          "id":  "A08",
@@ -153,11 +155,11 @@
                                      {
                                          "id":  "A15",
                                          "title":  "Signed RC build and zero P0/P1",
-                                         "status":  "PLANNED",
+                                         "status":  "IN_PROGRESS",
                                          "evidence":  [
-
+                                                          "docs/RELEASE_NOTES_v044_beta6.md"
                                                       ],
-                                         "blocker":  null
+                                         "blocker":  "Beta6 signed preview only; not a fully approved RC without hardware and F14 closure"
                                      }
                                  ]
                    },
@@ -225,11 +227,11 @@
                                      {
                                          "id":  "B07",
                                          "title":  "Long-session repeat/shuffle/next queue",
-                                         "status":  "PLANNED",
+                                         "status":  "IN_PROGRESS",
                                          "evidence":  [
-
+                                                          "docs/evidence/v25/playback_instrumentation.txt"
                                                       ],
-                                         "blocker":  null
+                                         "blocker":  "Automatic 0-\u003e1-\u003e2 and repeat/shuffle passed on emulator; full long-session and real user-audio regression still pending"
                                      },
                                      {
                                          "id":  "B08",

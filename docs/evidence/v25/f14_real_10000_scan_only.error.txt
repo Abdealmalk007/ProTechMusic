@@ -1,0 +1,6 @@
+java.lang.IllegalStateException: Scan-only fixture incomplete: expected 10000, found 0
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.runFixture(F14RealMediaQaActivity.kt:96)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.onCreate$lambda$1(F14RealMediaQaActivity.kt:35)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.$r8$lambda$DfYLv7SmbTkY2ziNzjDZ_SwUvKI(Unknown Source:0)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)

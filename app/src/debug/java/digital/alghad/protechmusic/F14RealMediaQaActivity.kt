@@ -24,14 +24,15 @@ class F14RealMediaQaActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val count = intent.getIntExtra("count", 100)
-        if (count !in listOf(10, 100, 1_000, 10_000) || !isEmulator()) {
+        val scanOnly = intent.getBooleanExtra("scanOnly", false)
+        if (count !in listOf(10, 100, 1_000, 10_000, 50_000) || !isEmulator()) {
             Log.e(TAG, "Rejected: unsupported count or non-emulator device")
             finish()
             return
         }
         Thread({
             try {
-                val report = runFixture(count)
+                val report = runFixture(count, scanOnly)
                 File(filesDir, "f14_real_$count.json").writeText(report.toString(2))
                 Log.i(TAG, "RESULT " + report.toString())
             } catch (error: Throwable) {
@@ -68,7 +69,7 @@ class F14RealMediaQaActivity : Activity() {
 
     private fun ms(start: Long): Double = (System.nanoTime() - start) / 1_000_000.0
 
-    private fun runFixture(count: Int): JSONObject {
+    private fun runFixture(count: Int, scanOnly: Boolean): JSONObject {
         val cpuStart = Process.getElapsedCpuTime()
         val pssStart = Debug.getPss()
         val resolver = contentResolver
@@ -91,7 +92,10 @@ class F14RealMediaQaActivity : Activity() {
         val wav = wavFixture()
         var inserted = 0
         val insertStart = System.nanoTime()
-        for (i in 0 until count) {
+        if (scanOnly) {
+            check(current.size == count) { "Scan-only fixture incomplete: expected $count, found ${current.size}" }
+        }
+        for (i in 0 until if (scanOnly) 0 else count) {
             val name = prefix + i.toString().padStart(5, '0') + ".wav"
             if (name in current) continue
             val values = ContentValues().apply {
@@ -151,6 +155,7 @@ class F14RealMediaQaActivity : Activity() {
         return JSONObject()
             .put("mode", "ACTUAL_MEDIASTORE_INSERTED_WAV_FILES_API35_EMULATOR")
             .put("count", count)
+            .put("scan_only", scanOnly)
             .put("existing_fixture_count", current.size)
             .put("newly_inserted", inserted)
             .put("wav_bytes_each", wav.size)

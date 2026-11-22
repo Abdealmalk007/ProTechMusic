@@ -1,0 +1,21 @@
+{
+  "mode": "ACTUAL_MEDIASTORE_INSERTED_WAV_FILES_API35_EMULATOR",
+  "count": 100,
+  "existing_fixture_count": 0,
+  "newly_inserted": 100,
+  "wav_bytes_each": 2092,
+  "media_insert_ms": 34638.958387,
+  "real_scan_ms_last": 598.55994,
+  "scan_samples_ms": [
+    598.55994
+  ],
+  "real_scanned_total": 110,
+  "verified_qa_files": 100,
+  "index_build_ms": 57.081395,
+  "search_ms": 0.942722,
+  "pss_start_kb": 54367,
+  "pss_end_kb": 58380,
+  "cpu_ms": 624,
+  "battery_mah": null,
+  "limitation": "Dedicated emulator, actual MediaStore files; not physical battery QA"
+}

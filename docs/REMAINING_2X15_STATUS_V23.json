@@ -14,9 +14,9 @@
                    {
                        "id":  "A",
                        "name":  "F14/F15 RC closure",
-                       "pass":  1,
+                       "pass":  4,
                        "total":  15,
-                       "percentage":  6.7,
+                       "percentage":  26.7,
                        "tasks":  [
                                      {
                                          "id":  "A01",
@@ -31,34 +31,35 @@
                                      {
                                          "id":  "A02",
                                          "title":  "Emulator/ADB cold boot and non-streaming install",
-                                         "status":  "IN_PROGRESS",
+                                         "status":  "PASS",
                                          "evidence":  [
-
+                                                          "docs/evidence/v23/instrumentation_smoke.txt",
+                                                          "docs/evidence/v23/instrumentation_registry.txt"
                                                       ],
                                          "blocker":  null
                                      },
                                      {
                                          "id":  "A03",
                                          "title":  "10-file actual MediaStore smoke",
-                                         "status":  "PLANNED",
+                                         "status":  "PASS",
                                          "evidence":  [
-
+                                                          "docs/evidence/f14_realmedia/f14_real_10.json"
                                                       ],
                                          "blocker":  null
                                      },
                                      {
                                          "id":  "A04",
                                          "title":  "100-file real media scan",
-                                         "status":  "PLANNED",
+                                         "status":  "PASS",
                                          "evidence":  [
-
+                                                          "docs/evidence/f14_realmedia/f14_real_100.json"
                                                       ],
                                          "blocker":  null
                                      },
                                      {
                                          "id":  "A05",
                                          "title":  "1000-file real media scan",
-                                         "status":  "PLANNED",
+                                         "status":  "IN_PROGRESS",
                                          "evidence":  [
 
                                                       ],
@@ -141,7 +142,8 @@
                                          "title":  "Android instrumentation and JVM tests",
                                          "status":  "IN_PROGRESS",
                                          "evidence":  [
-
+                                                          "docs/evidence/v23/instrumentation_smoke.txt",
+                                                          "docs/evidence/v23/instrumentation_build.txt"
                                                       ],
                                          "blocker":  null
                                      },

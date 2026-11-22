@@ -1,0 +1,1 @@
+instrumentation:digital.alghad.protechmusic.test/digital.alghad.protechmusic.RcSmokeInstrumentation (target=digital.alghad.protechmusic)

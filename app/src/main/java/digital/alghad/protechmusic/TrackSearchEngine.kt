@@ -7,7 +7,27 @@ import java.util.Locale
 object TrackSearchEngine {
     enum class Order { ORIGINAL, TITLE, ARTIST, SOURCE, RECENTLY_ADDED, DURATION, SIZE }
 
+    // Precompiled once; allocating Regex for every field dominated large-library indexing.
+    private val whitespace = Regex("\\s+")
+
     fun normalize(raw: String): String {
+        // NFKD does not change printable ASCII. Handle this overwhelmingly common case
+        // without Unicode decomposition, intermediate strings or regular expressions.
+        // Non-ASCII/control input retains the original Unicode normalization semantics.
+        if (raw.all { it.code in 32..126 }) {
+            val output = StringBuilder(raw.length)
+            var spacePending = false
+            for (char in raw) {
+                if (char == ' ') {
+                    if (output.isNotEmpty()) spacePending = true
+                } else {
+                    if (spacePending) output.append(' ')
+                    output.append(char.lowercaseChar())
+                    spacePending = false
+                }
+            }
+            return output.toString()
+        }
         val text = Normalizer.normalize(raw, Normalizer.Form.NFKD)
         val result = StringBuilder(text.length)
         for (c in text) {
@@ -19,7 +39,7 @@ object TrackSearchEngine {
                 else -> result.append(c.lowercaseChar())
             }
         }
-        return result.toString().trim().replace(Regex("\\s+"), " ")
+        return result.toString().trim().replace(whitespace, " ")
     }
 
     /**

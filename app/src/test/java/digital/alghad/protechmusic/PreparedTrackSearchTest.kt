@@ -4,6 +4,40 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PreparedTrackSearchTest {
+    private fun referenceNormalize(raw: String): String {
+        val decomposed = java.text.Normalizer.normalize(raw, java.text.Normalizer.Form.NFKD)
+        val result = StringBuilder(decomposed.length)
+        for (char in decomposed) {
+            when {
+                char == '\u0640' -> Unit
+                Character.getType(char) == Character.NON_SPACING_MARK.toInt() -> Unit
+                char == '\u0623' || char == '\u0625' || char == '\u0622' || char == '\u0671' -> result.append('\u0627')
+                char == '\u0649' -> result.append('\u064A')
+                else -> result.append(char.lowercaseChar())
+            }
+        }
+        return result.toString().trim().replace(Regex("\\s+"), " ")
+    }
+
+    @Test fun fastPathMatchesOriginalUnicodeNormalizationPrecisely() {
+        val examples = listOf(
+            "", "  ", " Track   42  ", "HI-THERE / ARTIST_25 2026",
+            "a   b", "  [ A ]   { xyz }   ", "Straße Café",
+            "أَغْنِيَة الْأَمَل", "إلى آخر", "آباء", "ألف ـ عربية",
+            "x\t\ny  z", " Æ Ω Å ", "I\u0307STANBUL", "ＡＢＣ",
+            "a\u000Bb", "Music/2026/Download"
+        )
+        for (sample in examples) assertEquals(sample, referenceNormalize(sample), TrackSearchEngine.normalize(sample))
+        val random = java.util.Random(0x143214L)
+        repeat(2_000) {
+            val len = random.nextInt(95)
+            val value = buildString {
+                repeat(len) { append((32 + random.nextInt(95)).toChar()) }
+            }
+            assertEquals("Random ASCII mismatch test=$it", referenceNormalize(value), TrackSearchEngine.normalize(value))
+        }
+    }
+
     private fun sample(n: Int) = (0 until n).map { i ->
         AudioTrack(
             uri = "content://media/external/audio/media/$i",

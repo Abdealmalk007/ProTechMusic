@@ -1,0 +1,6 @@
+java.lang.IllegalStateException: Real MediaStore scan mismatch: expected 100, found 176 (total 185)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.runFixture(F14RealMediaQaActivity.kt:136)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.onCreate$lambda$1(F14RealMediaQaActivity.kt:34)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity.$r8$lambda$reg2SngB21b1Amlpsep7OggZSuM(Unknown Source:0)
+	at digital.alghad.protechmusic.F14RealMediaQaActivity$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1012)

@@ -1,0 +1,53 @@
+{
+    "date":  "2026-11-22",
+    "project":  "ProTech Music",
+    "latest_public_beta":  "v0.4.3-beta.5",
+    "f_percent":  86.7,
+    "overall_percent":  44,
+    "f14_status":  "IN_PROGRESS",
+    "f15_status":  "IN_PROGRESS",
+    "release_ready":  false,
+    "items":  [
+                  {
+                      "priority":  "P1-blocker",
+                      "status":  "BLOCKED_PENDING_VALID_V22_RUNTIME",
+                      "description":  "Earlier count and hard-coded title fixture assertions corrected in V22; debug build PASS but Android QA runtime blocked on emulator/ADB; test cannot be declared PASS",
+                      "id":  "QA-001"
+                  },
+                  {
+                      "priority":  "Release-blocker",
+                      "status":  "UNVERIFIED",
+                      "description":  "10k and 50k distinct real audio files via MediaStore not tested",
+                      "id":  "QA-002"
+                  },
+                  {
+                      "priority":  "Release-blocker",
+                      "status":  "UNVERIFIED",
+                      "description":  "Physical battery, background CPU and long-run memory tests unavailable; no physical ADB device",
+                      "id":  "QA-003"
+                  },
+                  {
+                      "priority":  "Release-blocker",
+                      "status":  "MISSING",
+                      "description":  "Dedicated androidTest instrumentation module and complete UI regression not available in offline build",
+                      "id":  "QA-004"
+                  },
+                  {
+                      "priority":  "P2-investigation",
+                      "status":  "OPEN",
+                      "description":  "Intermittent Android emulator SystemUI ANR observed in prior QA session",
+                      "id":  "QA-005"
+                  },
+                  {
+                      "id":  "QA-006",
+                      "priority":  "P2-investigation",
+                      "status":  "OPEN",
+                      "description":  "ADB PackageManager intermittently hangs with streamed/non-streamed debug installs on dedicated API35 QA emulator; stable hardware/emulator QA required"
+                  }
+              ],
+    "evidence":  [
+                     "docs/QA_F15_RC_PRECHECK_20261122.md",
+                     "docs/QA_F14_FAST_INDEX_V20_20261122.md",
+                     "docs/F14_REAL_MEDIA_DEBUG_BUILD_20261122.log"
+                 ]
+}

@@ -78,12 +78,12 @@
                                      {
                                          "id":  "F14",
                                          "status":  "IN_PROGRESS",
-                                         "evidence":  "docs/QA_F14_FAST_INDEX_V20_20261122.md"
+                                         "evidence":  "docs/QA_F14_REALMEDIA_V22_20261122.md"
                                      },
                                      {
                                          "id":  "F15",
                                          "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "evidence":  "docs/QA_F15_RC_PRECHECK_20261122.md"
                                      }
                                  ]
                    },
@@ -171,5 +171,5 @@
                    }
                ],
     "next_step":  "F14",
-    "last_evidence":  "docs/QA_F14_FAST_INDEX_V20_20261122.md"
+    "last_evidence":  "docs/QA_F14_REALMEDIA_V22_20261122.md"
 }

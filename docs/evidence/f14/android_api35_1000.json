@@ -1,0 +1,26 @@
+{
+  "type": "synthetic_cursor_stress_not_real_50000_media_files",
+  "count": 1000,
+  "synthetic_rows": 1002,
+  "parsed_unique": 1000,
+  "row_generation_ms": 28.933928,
+  "cursor_parse_ms": 385.40399,
+  "index_build_ms": 1918.776991,
+  "search_ms": [
+    15.476269,
+    8.404626,
+    9.126485,
+    8.222922,
+    10.043543
+  ],
+  "sort_all_ms": 62.866795,
+  "actual_media_count": 9,
+  "actual_media_scan_ms": 108.113253,
+  "process_cpu_ms": 1933,
+  "heap_start_bytes": 2930416,
+  "heap_end_bytes": 9035152,
+  "pss_start_kb": 50541,
+  "pss_end_kb": 76513,
+  "battery_mah": null,
+  "battery_note": "Emulator does not provide calibrated physical battery drain"
+}

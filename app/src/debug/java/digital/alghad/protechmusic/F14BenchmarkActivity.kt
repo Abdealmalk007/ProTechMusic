@@ -54,14 +54,14 @@ class F14BenchmarkActivity : Activity() {
         val cursor = MatrixCursor(names, n + 2)
         val rowStart = System.nanoTime()
         for (i in 0 until n) cursor.addRow(arrayOf<Any>(
-            (i + 1).toLong(), "Track $i", "track_$i.mp3",
+            (i + 1).toLong(), if (i == n - 1) "BenchmarkNeedle_$n" else "Track $i", "track_$i.mp3",
             "Artist ${i % 29}", "Album ${i % 41}", 45_000L,
             18_000L + i, 1_750_000_000L + i,
             if (i % 2 == 0) "Music/2026/" else "Download/Audio/"
         ))
         cursor.addRow(arrayOf<Any>(n + 1L, "Excluded Empty", "empty.mp3",
             "Artist", "Album", 0L, 0L, 1_750_000_000L, "Music/"))
-        cursor.addRow(arrayOf<Any>(n.toLong(), "Track ${n - 1}", "track_${n - 1}.mp3",
+        cursor.addRow(arrayOf<Any>(n.toLong(), "BenchmarkNeedle_$n", "track_${n - 1}.mp3",
             "Artist ${(n - 1) % 29}", "Album ${(n - 1) % 41}",
             45_000L, 18_000L + n - 1, 1_750_000_000L + n - 1,
             if ((n - 1) % 2 == 0) "Music/2026/" else "Download/Audio/"))
@@ -81,7 +81,7 @@ class F14BenchmarkActivity : Activity() {
         val searches = JSONArray()
         repeat(5) {
             val start = System.nanoTime()
-            val found = prepared.search(tracks, "Track ${n - 1}")
+            val found = prepared.search(tracks, "BenchmarkNeedle_$n")
             searches.put(elapsed(start))
             check(found.size == 1) { "Search should have one match, got ${found.size}" }
         }

@@ -18,7 +18,9 @@
 | 10,000 | 63.247 | 9.435 | 139.835 |
 | 50,000 | 131.189 | 21.966 | 225.610 |
 
-Raw measurements in `docs/evidence/f14/jvm_benchmark.csv`. Device hardware, JVM warmup, GC and data composition affect timing. **This is NOT an end-to-end 50,000-file MediaStore or battery test.**
+Raw measurements in `docs/evidence/f14/jvm_benchmark.csv`. Device hardware, JVM warmup, GC and data composition affect timing.
+
+- Android 15 API35 emulator synthetic `MatrixCursor` stress tests **passed at all three sizes** (1,000/10,000/50,000 unique metadata records; zero-byte rows excluded and duplicate URI deduplicated). At 50k, cursor parse **2.71 s**, temporary search-index preparation **21.90 s**, app PSS after the run **172,172 KB**. At 10k, cursor parse **1.05 s**, index preparation **10.00 s**. Raw JSON: `docs/evidence/f14/android_api35_*.json`. These are synthetic cursor row benchmarks, **NOT an end-to-end 50,000-file MediaStore or battery test.** The index-build latency on slower devices remains an optimization target.
 
 ## Release status
 - Original 25-task product roadmap: 11/25 verified = 44%.

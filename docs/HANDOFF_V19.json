@@ -1,0 +1,55 @@
+{
+  "project": "ProTech Music",
+  "checkpoint": "HANDOFF_V19",
+  "date": "2026-11-22",
+  "status": "SIGNED_BETA_PREVIEW_PENDING_SIGN_AND_WEB_PUBLISH",
+  "root": "E:\\ProTech\\ProTechMusic",
+  "website_root": "E:\\ProTech\\ProTechMusicSiteRelease_20261121",
+  "current_version": "0.4.2-beta.4",
+  "version_code": 15,
+  "overall_25_task_percent": 44,
+  "overall_completed": 11,
+  "overall_total": 25,
+  "feature_F_percent": 86.7,
+  "feature_F_pass": 13,
+  "feature_F_total": 15,
+  "feature_F14_status": "IN_PROGRESS",
+  "release_R_percent": 0,
+  "completed_this_turn": [
+    "Reworked TrackSearchEngine.PreparedLibrary cached searchable text and sort keys; MainActivity builds index on Dispatchers.Default",
+    "Extracted real AudioCursorReader parser and reused for debug stress testing",
+    "Preserved stateless search parity across all sort modes",
+    "53/53 Kotlin JVM tests PASS including 1k 10k 50k synthetic benchmarks",
+    "Synthetic Android API35 MatrixCursor tests PASS 1000 10000 50000 unique records, skip zero byte and dedup ID, no FATAL",
+    "1k cursor 385.4ms/index 1918.8ms/PSS 76513KB; 10k cursor 1050.1ms/index 10004.1ms/PSS 101543KB;50k cursor 2711.8ms/index 21896.3ms/PSS 172172KB",
+    "Android stress and actual JVM metrics saved in docs/evidence/f14",
+    "Source commit e6b738b pushed; debug test correction and QA report to be pushed",
+    "QA documentation accurately marks F14 IN_PROGRESS due missing physical battery and true 50k media-file scans"
+  ],
+  "evidence": [
+    "docs/QA_F14_LIBRARY_PERFORMANCE_20261122.md",
+    "docs/evidence/f14/jvm_benchmark.csv",
+    "docs/evidence/f14/jvm_test_summary.json",
+    "docs/evidence/f14/android_api35_1000.json",
+    "docs/evidence/f14/android_api35_10000.json",
+    "docs/evidence/f14/android_api35_50000.json",
+    "docs/evidence/f14/f14_android_runtime_errors.txt"
+  ],
+  "pending": [
+    "Verify release assemble/sign v0.4.2-beta.4 and same key as beta3, publish GitHub pre-release",
+    "Regenerate/verify/site push GitHub Pages and LIVE AR/EN links",
+    "Full 1k/10k/50k distinct real-media files Android MediaStore integration benchmark",
+    "Physical-device background battery/CPU/memory long-session profile and 50k index load UX optimization",
+    "F15 RC, R01-R15 final gate"
+  ],
+  "next_phase": "F14_CONTINUE_THEN_F15",
+  "safeguards": [
+    "Never increase F milestone above 86.7% without true F14 gate evidence",
+    "Original overall 44% unchanged",
+    "Never publish debug APK as production",
+    "Reuse persistent signing key; do not include keystore/passphrases in repo",
+    "Never delete user audio",
+    "Do not call beta Stable or Final"
+  ],
+  "resume": "Inspect docs/HANDOFF_V19.json, RELEASЕ_CLOSURE_PROGRESS.json, current git and signs. F14 synthetic and JVM QA evidence completed, but physical battery and actual 50k MediaStore remain outstanding. Continue F14 efficiency then F15, never restart from scratch."
+}

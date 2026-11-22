@@ -94,6 +94,7 @@ class MusicService : Service() {
         MusicRuntime.bass=preferences.getInt("bass",0).coerceIn(0,100)
         MusicRuntime.equalizerEnabled=preferences.getBoolean("eq_enabled",false)
         MusicRuntime.speed=AudioEffectMath.playbackSpeed(preferences.getFloat("speed",1f))
+        MusicRuntime.repeat=preferences.getInt("repeat",Player.REPEAT_MODE_OFF).coerceIn(0,2)
         val attrs=AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA).build()
         player=ExoPlayer.Builder(this).build().apply {
@@ -127,6 +128,8 @@ class MusicService : Service() {
             })
         }
         player.playbackParameters=PlaybackParameters(MusicRuntime.speed)
+        // Restore repeat before queue/media restoration; do not change shuffle or song order.
+        player.repeatMode=MusicRuntime.repeat
         session=MediaSession(this,"ProTechMusic").apply{
             setCallback(object:MediaSession.Callback(){
                 override fun onPlay()=resume()
@@ -228,8 +231,10 @@ class MusicService : Service() {
     }
     fun changeShuffle(){setShuffle(!player.shuffleModeEnabled)}
     fun changeRepeat() {
-        MusicRuntime.repeat=(MusicRuntime.repeat+1)%3
-        player.repeatMode=when(MusicRuntime.repeat){1->Player.REPEAT_MODE_ONE;2->Player.REPEAT_MODE_ALL;else->Player.REPEAT_MODE_OFF}
+        val next=(player.repeatMode+1)%3
+        player.repeatMode=next
+        MusicRuntime.repeat=next
+        preferences.edit().putInt("repeat",next).apply()
     }
     fun changeSpeed(speed:Float) {
         val v=AudioEffectMath.playbackSpeed(speed)

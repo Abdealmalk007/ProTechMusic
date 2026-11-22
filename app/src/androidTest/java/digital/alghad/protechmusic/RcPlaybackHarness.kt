@@ -116,12 +116,16 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             val controlOk = booleanArrayOf(false)
             instrumentation.runOnMainSync {
                 val player = playingService.player
+                val saved = context.getSharedPreferences("playback", Context.MODE_PRIVATE)
                 playingService.changeRepeat()
-                val single = player.repeatMode == Player.REPEAT_MODE_ONE
+                val single = player.repeatMode == Player.REPEAT_MODE_ONE &&
+                    saved.getInt("repeat", -1) == Player.REPEAT_MODE_ONE
                 playingService.changeRepeat()
-                val all = player.repeatMode == Player.REPEAT_MODE_ALL
+                val all = player.repeatMode == Player.REPEAT_MODE_ALL &&
+                    saved.getInt("repeat", -1) == Player.REPEAT_MODE_ALL
                 playingService.changeRepeat()
-                val off = player.repeatMode == Player.REPEAT_MODE_OFF
+                val off = player.repeatMode == Player.REPEAT_MODE_OFF &&
+                    saved.getInt("repeat", -1) == Player.REPEAT_MODE_OFF
                 playingService.setShuffle(true)
                 val enabled = player.shuffleModeEnabled
                 playingService.setShuffle(false)

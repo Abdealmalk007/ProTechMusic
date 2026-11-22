@@ -1,7 +1,7 @@
 # ProTech Music
 Native Android offline-first music player by ALGHAD DIGITAL (ProTech).
 
-**Status: Signed Beta Preview, NOT production-ready.** Current source is version `0.4.4-beta.6`; the original 25-task roadmap remains 44% verified, and feature-closure Phase F is 86.7% verified. F14 performance work is still in progress and is not certified as passed. Package: `digital.alghad.protechmusic`. Kotlin 2.1.20, Compose 1.8.2, Material3 1.3.2, Media3 ExoPlayer 1.6.1, Android SDK 35; Android 8+.
+**Status: Signed Beta Preview, NOT production-ready.** Current source is version `0.4.5-beta.7`; the original 25-task roadmap remains 44% verified, and feature-closure Phase F is 86.7% verified. F14 performance work is still in progress and is not certified as passed. Package: `digital.alghad.protechmusic`. Kotlin 2.1.20, Compose 1.8.2, Material3 1.3.2, Media3 ExoPlayer 1.6.1, Android SDK 35; Android 8+.
 
 ## Features implemented in source
 - MediaStore scan of all user-accessible audio (not limited to IS_MUSIC=1), including short voice notes.

@@ -14,9 +14,9 @@
                    {
                        "id":  "A",
                        "name":  "F14/F15 RC closure",
-                       "pass":  4,
+                       "pass":  5,
                        "total":  15,
-                       "percentage":  26.7,
+                       "percentage":  33.3,
                        "tasks":  [
                                      {
                                          "id":  "A01",
@@ -59,9 +59,9 @@
                                      {
                                          "id":  "A05",
                                          "title":  "1000-file real media scan",
-                                         "status":  "IN_PROGRESS",
+                                         "status":  "PASS",
                                          "evidence":  [
-
+                                                          "docs/evidence/f14_realmedia/f14_real_1000.json"
                                                       ],
                                          "blocker":  null
                                      },

@@ -27,7 +27,7 @@ try{
    }
    & $adb -s $serial shell am start -n ($pkg+"/.MainActivity")
    if($LASTEXITCODE -ne 0){throw "Activity did not launch $($test.name)"}
-   Start-Sleep -Seconds 2
+   Start-Sleep -Seconds 9
    $remote="/sdcard/v23_"+$test.name+".png"
    $dest=Join-Path $out ($test.name+".png")
    & $adb -s $serial shell screencap -p $remote

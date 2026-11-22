@@ -380,6 +380,7 @@ private fun MusicApp(
     val isCompact=configuration.screenWidthDp<360
     var tab by remember{mutableStateOf("all")}
     var showLandscapeFilters by remember{mutableStateOf(false)}
+    var showCompactActions by remember{mutableStateOf(false)}
     var smartFilter by remember{mutableStateOf("recentlyAdded")}
     var source by remember{mutableStateOf("All")}
     var folder by remember{mutableStateOf("")}
@@ -603,7 +604,44 @@ private fun MusicApp(
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth(),color=aqua)
             if(tab=="all" || tab=="sources" || tab=="source" || tab=="folders" ||
                 tab=="folder" || tab=="smart" || tab=="artists" || tab=="artist" || tab=="albums" || tab=="album"){
-                if(!isLandscape || showLandscapeFilters) Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
+                if(!isLandscape || showLandscapeFilters) {
+                    if(isCompact) {
+                        Row(Modifier.fillMaxWidth().padding(vertical=8.dp),
+                            horizontalArrangement=Arrangement.spacedBy(8.dp),
+                            verticalAlignment=Alignment.CenterVertically) {
+                            AssistChip(
+                                onClick={tab="all"},
+                                label={Text(if(UiLanguage.english) "All (${songs.size})" else "الكل (${songs.size})",
+                                    maxLines=1,overflow=TextOverflow.Ellipsis)},
+                                modifier=Modifier.weight(1f).heightIn(min=48.dp)
+                            )
+                            Box {
+                                OutlinedButton(
+                                    onClick={showCompactActions=true},
+                                    modifier=Modifier.heightIn(min=48.dp)
+                                ) { Text(if(UiLanguage.english) "More" else "المزيد") }
+                                DropdownMenu(expanded=showCompactActions,
+                                    onDismissRequest={showCompactActions=false}) {
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Import" else "استيراد")},
+                                        onClick={showCompactActions=false;onPick()})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Queue" else "قائمة الانتظار")},
+                                        onClick={showCompactActions=false;tab="queue"})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Recently added" else "أضيفت حديثًا")},
+                                        onClick={showCompactActions=false;tab="smart";smartFilter="recentlyAdded";selection=false;selected.clear()})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Sources" else "المصادر")},
+                                        onClick={showCompactActions=false;tab="sources"})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Folders" else "المجلدات")},
+                                        onClick={showCompactActions=false;tab="folders"})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Artists" else "الفنانون")},
+                                        onClick={showCompactActions=false;tab="artists"})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Albums" else "الألبومات")},
+                                        onClick={showCompactActions=false;tab="albums"})
+                                    DropdownMenuItem(text={Text(if(UiLanguage.english) "Select" else "تحديد")},
+                                        onClick={showCompactActions=false;selection=!selection;selected.clear()})
+                                }
+                            }
+                        }
+                    } else Row(horizontalArrangement=Arrangement.spacedBy(6.dp),
                     modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical=8.dp)) {
                     AssistChip(onClick=onPick,label={Text(UiLanguage.text("+ استيراد"))})
                     AssistChip(onClick={tab="all"},label={Text(UiLanguage.text("جميع الصوتيات (${songs.size})"))})
@@ -614,6 +652,7 @@ private fun MusicApp(
                     AssistChip(onClick={tab="artists"},label={Text(UiLanguage.text("الفنانون"))})
                     AssistChip(onClick={tab="albums"},label={Text(UiLanguage.text("الألبومات"))})
                     AssistChip(onClick={selection=!selection;selected.clear()},label={Text(if(selection)UiLanguage.text("إلغاء التحديد") else UiLanguage.text("تحديد متعدد"))})
+                }
                 }
                 if(tab=="source"){
                     TextButton(onClick={tab="sources";selection=false;selected.clear()}){

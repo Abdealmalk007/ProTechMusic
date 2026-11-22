@@ -1,0 +1,310 @@
+{
+    "updated_at":  "2026-11-22",
+    "project":  "ProTech Music",
+    "checkpoint":  "HANDOFF_V23",
+    "current_beta":  "v0.4.3-beta.5",
+    "source_root":  "E:\\ProTech\\ProTechMusic",
+    "strategy":  "Two sequential stages, exactly 15 evidence-gated checks each",
+    "official_progress":  {
+                              "original_25_tasks_percent":  44,
+                              "feature_F_15_percent":  86.7,
+                              "release_R_15_percent":  0
+                          },
+    "stages":  [
+                   {
+                       "id":  "A",
+                       "name":  "F14/F15 RC closure",
+                       "pass":  1,
+                       "total":  15,
+                       "percentage":  6.7,
+                       "tasks":  [
+                                     {
+                                         "id":  "A01",
+                                         "title":  "Baseline and source reconciliation",
+                                         "status":  "PASS",
+                                         "evidence":  [
+                                                          "docs/HANDOFF_V22.json",
+                                                          "git:001b48921e66fbd7be2737fa5905daf18a717dfd"
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A02",
+                                         "title":  "Emulator/ADB cold boot and non-streaming install",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A03",
+                                         "title":  "10-file actual MediaStore smoke",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A04",
+                                         "title":  "100-file real media scan",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A05",
+                                         "title":  "1000-file real media scan",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A06",
+                                         "title":  "10000-file real media scan",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A07",
+                                         "title":  "50000-file real media scan",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A08",
+                                         "title":  "Arabic/English real-file search and sort parity",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A09",
+                                         "title":  "SAF/M3U/source discovery regression",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A10",
+                                         "title":  "Cold/warm p50/p95 benchmarks",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A11",
+                                         "title":  "Sustained CPU/PSS/background memory",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A12",
+                                         "title":  "Physical device battery and wakelocks",
+                                         "status":  "BLOCKED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  "No authorized physical Android device connected over ADB"
+                                     },
+                                     {
+                                         "id":  "A13",
+                                         "title":  "Physical Bluetooth/headset/call focus",
+                                         "status":  "BLOCKED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  "No authorized physical Android device connected over ADB"
+                                     },
+                                     {
+                                         "id":  "A14",
+                                         "title":  "Android instrumentation and JVM tests",
+                                         "status":  "IN_PROGRESS",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "A15",
+                                         "title":  "Signed RC build and zero P0/P1",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     }
+                                 ]
+                   },
+                   {
+                       "id":  "B",
+                       "name":  "Production QA and release",
+                       "pass":  0,
+                       "total":  15,
+                       "percentage":  0,
+                       "tasks":  [
+                                     {
+                                         "id":  "B01",
+                                         "title":  "Audited 25-task roadmap/changelog",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B02",
+                                         "title":  "API26-28 legacy storage matrix",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B03",
+                                         "title":  "API29-32 scoped storage/SAF regression",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B04",
+                                         "title":  "API33-36 permission/service matrix",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B05",
+                                         "title":  "WhatsApp/Telegram/Downloads voice notes",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B06",
+                                         "title":  "Physical Bluetooth/headset/calls",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B07",
+                                         "title":  "Long-session repeat/shuffle/next queue",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B08",
+                                         "title":  "Safe deletion consent matrix",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B09",
+                                         "title":  "RTL/LTR TalkBack large fonts",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B10",
+                                         "title":  "1k/10k/50k sustained performance",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B11",
+                                         "title":  "Privacy/permission security audit",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B12",
+                                         "title":  "Installer icon branding/upgrade",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B13",
+                                         "title":  "Clean signed stable APK/AAB and SHA",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B14",
+                                         "title":  "GitHub Release plus bilingual site deployment",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     },
+                                     {
+                                         "id":  "B15",
+                                         "title":  "Final end-to-end reconciliation and acceptance",
+                                         "status":  "PLANNED",
+                                         "evidence":  [
+
+                                                      ],
+                                         "blocker":  null
+                                     }
+                                 ]
+                   }
+               ],
+    "constraints":  [
+                        "Do not claim pass without test evidence",
+                        "No deletion of user audio or data",
+                        "Beta5 remains latest public release until full gates",
+                        "Physical battery and Bluetooth require an actual authorized Android device"
+                    ]
+}

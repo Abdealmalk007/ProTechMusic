@@ -8,7 +8,7 @@ android {
     targetSdk = 35
     versionCode = 16
     versionName = "0.4.3-beta.5"
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner = "digital.alghad.protechmusic.RcSmokeInstrumentation"
   }
   buildTypes { release { isMinifyEnabled = false } }
   compileOptions {

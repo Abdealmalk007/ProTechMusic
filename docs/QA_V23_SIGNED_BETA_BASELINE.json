@@ -1,0 +1,13 @@
+{
+    "date":  "2026-11-22T11:39:16",
+    "signed_apk":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.4.3_beta5_SIGNED.apk",
+    "package_info":  "package: name=\u0027digital.alghad.protechmusic\u0027 versionCode=\u002716\u0027 versionName=\u00270.4.3-beta.5\u0027 platformBuildVersionName=\u002715\u0027 platformBuildVersionCode=\u002735\u0027 compileSdkVersion=\u002735\u0027 compileSdkVersionCodename=\u002715\u0027",
+    "bytes":  8991827,
+    "sha256":  "B99ACDCDE1FBF1EFC63EEBBB181D06A0FAB88425E1D2E732437C4FC5E6B21A85",
+    "signature_v2_verified":  true,
+    "signature_v3_verified":  true,
+    "debug_benchmark_in_release":  false,
+    "real_media_qa_in_release":  false,
+    "rc_smoke_in_release":  false,
+    "instrumentation_apk_present":  true
+}

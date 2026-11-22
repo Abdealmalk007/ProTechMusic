@@ -1,0 +1,53 @@
+﻿{
+    "project":  "ProTech Music",
+    "checkpoint":  "HANDOFF_V18",
+    "date":  "2026-11-22",
+    "status":  "BETA_SIGNED_PUBLISHED_NOT_FINAL",
+    "version":  "v0.4.1-beta.3",
+    "version_code":  14,
+    "official_roadmap_percent":  44,
+    "official_completed":  11,
+    "official_total":  25,
+    "feature_phase_F_percent":  86.7,
+    "feature_phase_F_pass":  13,
+    "feature_phase_F_total":  15,
+    "release_phase_R_percent":  0,
+    "release_phase_R_pass":  0,
+    "release_phase_R_total":  15,
+    "next_step":  "F14",
+    "next_step_goal":  "Benchmark 1k 10k 50k synthetic library, indexing time, UI responsiveness, memory, battery, duplicate scans; actual evidence",
+    "current_source_commit":  "2331fa8",
+    "site_commit":  "d6477b400bf7f65a772396b685a0cb32e0a586e3",
+    "release_url":  "https://github.com/Abdealmalk007/ProTechMusic/releases/tag/v0.4.1-beta.3",
+    "signed_apk":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.4.1_beta3_SIGNED.apk",
+    "signed_apk_sha256":  "C58F4A242C8813F2FE67EDC47EAFF5DB68E86411EFF61901A988BD4E28AC2528",
+    "signer_same_as_beta2":  true,
+    "site_ar":  "https://alghad.digital/programs/protech-music/",
+    "site_en":  "https://alghad.digital/en/programs/protech-music/",
+    "verified_this_session":  [
+                                  "AR RTL default and EN LTR preference persistence on Android API35",
+                                  "320dp portrait 160% font, 411dp portrait, short landscape, three button and gesture navigation",
+                                  "50/50 JVM unit tests and offline debug and release Gradle builds PASS",
+                                  "Original signing cert retained, APK v2/v3 verified, checksum matched",
+                                  "GitHub signed prerelease with 2 assets created",
+                                  "GitHub website commit d6477b4 pushed",
+                                  "All 4 site Node test suites passed; release-facts SHA from official GitHub verified",
+                                  "GitHub Pages deploy run 44992771944 SUCCESS; live AR/EN HTTP200 and new APK+SHA verified"
+                              ],
+    "pending_this_session":  [
+                                 "Signed beta3 upgrade/fresh install smoke on API35 AVD pending completion"
+                             ],
+    "evidence":  [
+                     "docs/QA_F13_RESPONSIVE_BILINGUAL_20261122.md",
+                     "docs/QA_SIGNED_BETA3_RELEASE_20261122.md",
+                     "docs/evidence/f13/"
+                 ],
+    "safeguards":  [
+                       "Do not increase official44% without full evidence for original tasks",
+                       "Never publish DEBUG APK as stable",
+                       "Never delete user media or app data for QA",
+                       "Do not replace original signing key",
+                       "Only public previews until F15 and R01-R15 pass"
+                   ],
+    "resume":  "Read HANDOFF_V18.json and RELEASE_CLOSURE_PROGRESS.json. Check git statuses, finish any pending signed beta3 install and live deploy verification. Next F14, 86.7% Phase F, overall44%."
+}

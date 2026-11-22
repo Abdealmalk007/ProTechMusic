@@ -19,7 +19,8 @@ Date: 2026-11-22. Channel: signed BETA preview (not production-certified).
 - Safety: existing signing key and app ID preserved; no user files/audio deleted.
 
 ## Release verification
-- GitHub prerelease v0.4.6-beta.8 and bilingual alghad.digital live page verification are PENDING at the time this report is drafted; append after successful publication.
+- GitHub prerelease https://github.com/Abdealmalk007/ProTechMusic/releases/tag/v0.4.6-beta.8 published; signed APK and SHA256SUMS assets verified, direct APK HTTP200.
+- Bilingual site https://alghad.digital/programs/protech-music/ and https://alghad.digital/en/programs/protech-music/ verified HTTP200, correct Beta8 version, APK filename and SHA256. Site commit 4b93e331201da386e9f9c233bcfc96e18ddcb43a, GitHub Pages run 45026730059 SUCCESS.
 - Signed beta is a usable download but is not certified stable. No connected physical Android device during this test run, therefore physical Bluetooth/headphones, telephony, battery and interruption QA are BLOCKED.
 - Full real app-visible 10k/50k MediaStore scans, API26–36 full matrix, accessibility audits and final release gates also remain unapproved.
 - Original overall 11/25=44%, feature F13/15=86.7%, Stage A6/15=40%, Stage B0/15=0%, R0 unchanged until new evidence.

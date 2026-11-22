@@ -16,8 +16,8 @@ Date: 2026-11-22. Baseline: signed v0.4.5-beta.7 (versionCode 18). Target: v0.4.
 | 10 | Save current position/index periodically without rewriting large queues | IMPLEMENTED, runtime test pending |
 | 11 | Preserve existing automatic next, repeat, shuffle and sleep timer | PREVIOUSLY VERIFIED in V25, V29 regression pending |
 | 12 | Validate 320dp compact, RTL/LTR and expanded player with screenshots | PENDING |
-| 13 | Run full JVM and Android build/instrumentation QA | PENDING |
-| 14 | Generate stable-key signed APK, match SHA-256, versionCode, v2/v3 | PENDING |
-| 15 | Publish versioned prerelease with hash on GitHub and AR/EN website, verify live | PENDING |
+| 13 | Run full JVM and Android build/instrumentation QA | PASS: 54/54 JVM, Gradle debug+release BUILD SUCCESSFUL |
+| 14 | Generate stable-key signed APK, match SHA-256, versionCode, v2/v3 | PASS: signed code19, same signer v2/v3, SHA256 verified |
+| 15 | Publish versioned prerelease with hash on GitHub and AR/EN website, verify live | PASS: GitHub and site pages LIVE, Pages run 45026730059 SUCCESS |
 
 The 15 items are this focused improvement stage, NOT the broader production certification. Existing unfinished gates A06/A07/A12/A13 and Stage B remain unapproved pending physical-device and large-MediaStore evidence. Never delete user audio. Do not relabel beta as final stable.

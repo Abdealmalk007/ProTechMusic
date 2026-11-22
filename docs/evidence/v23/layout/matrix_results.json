@@ -1,0 +1,20 @@
+[
+    {
+        "name":  "compact_320dp",
+        "size":  "840x1800",
+        "instrumentation":  "PASS",
+        "screenshot":  "E:\\ProTech\\ProTechMusic\\docs\\evidence\\v23\\layout\\compact_320dp.png"
+    },
+    {
+        "name":  "standard_411dp",
+        "size":  "1080x2340",
+        "instrumentation":  "PASS",
+        "screenshot":  "E:\\ProTech\\ProTechMusic\\docs\\evidence\\v23\\layout\\standard_411dp.png"
+    },
+    {
+        "name":  "landscape",
+        "size":  "1800x840",
+        "instrumentation":  "PASS",
+        "screenshot":  "E:\\ProTech\\ProTechMusic\\docs\\evidence\\v23\\layout\\landscape.png"
+    }
+]

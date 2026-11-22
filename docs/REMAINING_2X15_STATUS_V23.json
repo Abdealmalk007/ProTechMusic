@@ -14,9 +14,9 @@
                    {
                        "id":  "A",
                        "name":  "F14/F15 RC closure",
-                       "pass":  5,
+                       "pass":  6,
                        "total":  15,
-                       "percentage":  33.3,
+                       "percentage":  40,
                        "tasks":  [
                                      {
                                          "id":  "A01",
@@ -140,9 +140,12 @@
                                      {
                                          "id":  "A14",
                                          "title":  "Android instrumentation and JVM tests",
-                                         "status":  "IN_PROGRESS",
+                                         "status":  "PASS",
                                          "evidence":  [
-                                                          "docs/evidence/v23/instrumentation_smoke.txt",
+                                                          "docs/evidence/v23/layout/matrix_results.json",
+                                                          "docs/evidence/v23/ui_v24/compact_menu_after_load.png",
+                                                          "docs/evidence/v23/ui_v24/more_menu_hierarchy.xml",
+                                                          "docs/evidence/v23/ui_v24/queue_hierarchy.xml",
                                                           "docs/evidence/v23/instrumentation_build.txt"
                                                       ],
                                          "blocker":  null

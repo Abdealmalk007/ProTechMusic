@@ -11,7 +11,7 @@ Date 2026-11-22. Roadmap: `docs/ROADMAP_REMAINING_2X15_V23_20261122.md` (two sta
 
 ## Partial/ongoing
 - **A05** Real 1000-file MediaStore QA, isolated folder, in progress. Never infer PASS from generated file count alone.
-- **A14** Native Android platform instrumentation APK built offline with no additional dependencies; real API35 run returned `RC_SMOKE_PASS` and `INSTRUMENTATION_CODE: -1`. It checked launcher activity, non-exported audio service, permission minimization and drawn UI at 1080×2340. Kotlin JVM **54/54** PASS. More viewport/RTL and full UI interaction evidence remains before the full A14 gate is PASS.
+- **A14** Native Android platform instrumentation APK built offline with no additional dependencies; real API35 run returned `RC_SMOKE_PASS` and `INSTRUMENTATION_CODE: -1`. It checked launcher activity, non-exported audio service, permission minimization and drawn UI at 1080×2340. Kotlin JVM **54/54** PASS. Viewport and menu interaction verification later completed on the isolated V24 emulator; see A14 PASS below.
 - **A12/A13** Physical battery/Bluetooth/call QA BLOCKED: no real authorized device connected to ADB.
 
 ## Verification notes
@@ -25,4 +25,10 @@ Date 2026-11-22. Roadmap: `docs/ROADMAP_REMAINING_2X15_V23_20261122.md` (two sta
 ## A14 responsive-ui finding and fix (verification pending)
 - Native Android instrumentation returned PASS on API35 in compact 320dp, normal 411dp and a landscape viewport. Initial screenshots were captured during Android Splash Screen and are *not* UI proof; the second capture after 9 seconds revealed real app content.
 - Visual review identified an overflow/clipped chip in the compact 320dp horizontally scrollable quick action bar. `MainActivity.kt` now replaces it with a bounded **All + More** action pair at `<360dp`, with Import, Queue, Recently Added, Sources, Folders, Artists, Albums and multi-selection in an accessible Material3 `DropdownMenu`; standard layouts retain existing actions.
-- `:app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest` completed **BUILD SUCCESSFUL**, 54/54 JVM tests, but live confirmation of the revised compact layout is pending a clean independent emulator install. **A14 is not certified PASS until the loaded UI and dropdown are observed**.
+- `:app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest` completed **BUILD SUCCESSFUL**, 54/54 JVM tests, but live confirmation of the revised compact layout is pending a clean independent emulator install. **A14 was subsequently verified on the isolated V24 emulator; see the final A14 PASS evidence below.**
+## A14 final PASS — real UI and instrumentation after the responsive fix
+- A clean `ProTechMusicUI35_V24` emulator installed the revised debug APK and displayed actual Arabic RTL content at 320dp; screenshot `docs/evidence/v23/ui_v24/compact_menu_after_load.png` shows complete non-clipped **All + More** controls.
+- Clicking **More** displayed Import, Queue, Recently added, Sources, Folders, Artists, Albums and Select; `more_menu_hierarchy.xml` and `more_menu_open.png` provide direct Android UI evidence.
+- Clicking **Queue** changed the app to the current playback queue screen, verified by `queue_hierarchy.xml` and `queue_selected.png`.
+- Reinstalled the platform instrumentation APK on V24 and passed the revised app on **320dp, 411dp and landscape**. `docs/evidence/v23/layout/matrix_results.json` and corresponding screenshot/log files contain 3 `RC_SMOKE_PASS` results.
+- Gradle debug app, JVM unit tests and Android instrumentation APK: BUILD SUCCESSFUL; **54/54 JVM tests PASS**. This closes the scoped **A14 automated UI smoke gate**; broader accessibility/TalkBack production coverage remains B09.

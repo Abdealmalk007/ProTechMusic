@@ -25,6 +25,7 @@ try{
    if($LASTEXITCODE -ne 0 -or $result -notmatch "RC_SMOKE_PASS" -or $result -notmatch 'INSTRUMENTATION_CODE:\s+-1'){
     throw "Instrumentation failed $($test.name)"
    }
+   & $adb -s $serial shell am force-stop $pkg
    & $adb -s $serial shell am start -n ($pkg+"/.MainActivity")
    if($LASTEXITCODE -ne 0){throw "Activity did not launch $($test.name)"}
    Start-Sleep -Seconds 9

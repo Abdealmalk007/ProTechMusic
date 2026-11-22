@@ -8,7 +8,7 @@
                    {
                        "id":  "F",
                        "label":  "Feature Complete RC",
-                       "progress_percent":  73.3,
+                       "progress_percent":  80.0,
                        "steps":  [
                                      {
                                          "id":  "F01",
@@ -67,8 +67,8 @@
                                      },
                                      {
                                          "id":  "F12",
-                                         "status":  "IN_PROGRESS",
-                                         "evidence":  null
+                                         "status":  "PASS",
+                                         "evidence":  "docs/QA_F12_ANDROID35_ACCEPTANCE_20261122.md"
                                      },
                                      {
                                          "id":  "F13",
@@ -170,6 +170,6 @@
                                  ]
                    }
                ],
-    "next_step":  "F12",
-    "last_evidence":  "docs/QA_F11_SOUND_EFFECTS_V039_2026-11-21.md"
+    "next_step":  "F13",
+    "last_evidence":  "docs/QA_F12_ANDROID35_ACCEPTANCE_20261122.md"
 }

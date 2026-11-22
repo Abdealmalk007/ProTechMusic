@@ -1,0 +1,11 @@
+﻿F12 API35 synthetic fixture QA
+Start=2026-11-22T07:46:00
+1
+--- PLAY A ---
+state=PlaybackState {state=PLAYING(3), position=0, buffered position=0, speed=1.25, updated=346016, actions=310, custom actions=[], active item id=-1, error=null}
+metadata: size=4, description=ProTech QA A, ALGHAD QA, null
+state=PlaybackState {state=ERROR(7), position=0, buffered position=0, speed=0.0, updated=110106, actions=0, custom actions=[], active item id=-1, error=Bluetooth audio disconnected}
+--- AFTER 9 SECONDS ---
+state=PlaybackState {state=PLAYING(3), position=0, buffered position=0, speed=1.25, updated=355350, actions=310, custom actions=[], active item id=-1, error=null}
+metadata: size=3, description=qa_v034_auto_02, null, null
+state=PlaybackState {state=ERROR(7), position=0, buffered position=0, speed=0.0, updated=110106, actions=0, custom actions=[], active item id=-1, error=Bluetooth audio disconnected}

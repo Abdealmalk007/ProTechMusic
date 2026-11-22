@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -486,7 +487,9 @@ private fun MusicApp(
             containerColor=Color(0xFF242647),
             contentColor=Color.White
         ){
-            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom=12.dp)){
+            val maxSheetHeight=(LocalConfiguration.current.screenHeightDp*0.78f).dp
+            Column(Modifier.fillMaxWidth().heightIn(max=maxSheetHeight)
+                .verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom=12.dp)){
                 PlayerBar(
                     service=service,
                     expanded=true,
@@ -948,9 +951,15 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                     Text(track.title,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
                     Text(if(expanded)track.artist else "اضغط لفتح المشغل",style=MaterialTheme.typography.bodySmall,color=Color.LightGray)
                 }
-                TextButton(onClick={service?.previous()}){Text("⏮")}
-                TextButton(onClick={if(MusicRuntime.playing)service?.pause() else service?.resume()}){Text(if(MusicRuntime.playing)"⏸" else "▶")}
-                TextButton(onClick={service?.next()}){Text("⏭")}
+                TextButton(onClick={service?.previous()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
+                    .semantics{contentDescription="المقطع السابق"}){Text("⏮")}
+                TextButton(onClick={if(MusicRuntime.playing)service?.pause() else service?.resume()},
+                    modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
+                        .semantics{contentDescription=if(MusicRuntime.playing)"إيقاف مؤقت" else "تشغيل"}){
+                    Text(if(MusicRuntime.playing)"⏸" else "▶")
+                }
+                TextButton(onClick={service?.next()},modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)
+                    .semantics{contentDescription="المقطع التالي"}){Text("⏭")}
             }
             if(expanded){
                 Box(Modifier.fillMaxWidth().padding(vertical=6.dp),contentAlignment=Alignment.Center){

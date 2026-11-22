@@ -61,7 +61,8 @@
                                 "Published GitHub prerelease v0.4.4-beta.6 with signed APK and SHA256SUMS; hash 88B3AF75DE759B08986BC123482AE434B6227E7BF47FFDC0A0ED2A0D825D4BA5",
                                 "Published bilingual alghad.digital program pages commit f0eea7c, Pages run 45010415066 SUCCESS; live AR/EN 200, version/sha/download all match",
                                 "Signed-vs-debug install incompatibility on QA emulator correctly detected without uninstalling debug data",
-                                "Attempted signed Beta5-to-Beta6 upgrade on new AVD, blocked before Android boot by concurrent AVD and host RAM pressure; stopped only the new AVD, host RAM recovered. No signed-to-signed PASS claim."
+                                "Attempted signed Beta5-to-Beta6 upgrade on new AVD, blocked before Android boot by concurrent AVD and host RAM pressure; stopped only the new AVD, host RAM recovered. No signed-to-signed PASS claim.",
+                                "Dedicated Android 15 V26 release-upgrade emulator stayed without boot_completed and PackageManager; aborted test without uninstalling user/debug packages and marked upgrade BLOCKED"
                             ],
     "evidence":  [
                      "docs/QA_F14_LIBRARY_PERFORMANCE_20261122.md",
@@ -97,12 +98,11 @@
                      "docs/QA_RELEASE_V26_20261122.md"
                  ],
     "pending":  [
+                    "First-boot clean Android emulator package manager unresponsive; signed beta5 to beta6 in-place upgrade remains BLOCKED",
                     "Complete app-visible 10k/50k real MediaStore QA with no IS_PENDING fixtures",
                     "Complete long-run memory and ANR performance QA",
                     "Complete physical battery, headset/Bluetooth, telephony interruption and audio focus QA",
-                    "Install signed APK on clean emulator without touching DEBUG QA data; carry out signed in-place upgrade",
-                    "Close F14/F15 RC requirements then 15 Stage B production gates",
-                    "On one isolated bootable AVD verify signed Beta5 -\u003e signed Beta6 in-place upgrade and retained English preference, no uninstall"
+                    "Close F14/F15 RC requirements then 15 Stage B production gates"
                 ],
     "next_phase":  "F14_LARGE_MEDIA_PHYSICAL_HARDWARE_THEN_F15_RC",
     "safeguards":  [
@@ -113,7 +113,7 @@
                        "Never delete user audio",
                        "Do not call beta Stable or Final"
                    ],
-    "resume":  "Resume from HANDOFF_V26 and QA_RELEASE_V26. Beta6 v0.4.4-beta.6 published, signed v2/v3 cert matches Beta5, website live. Upgrade QA signed-to-signed not done due concurrent emulator memory pressure. Stage A 6/15=40, Stage B0, official overall44 F86.7 R0; physical battery/headset and real app-visible 10k/50k pending. Do not publish final stable.",
+    "resume":  "Beta6 signed and published on GitHub and bilingual site, docs evidence committed. Stage A6/15=40%, B0/15; original44 F86.7 R0. Isolated V26 AVD could not complete cold boot after 224s, so no signed upgrade PASS. Physical phone and app-visible 10k/50k remain missing. Resume from HANDOFF_V26 and maintain Beta/Preview label.",
     "github_release":  "https://github.com/Abdealmalk007/ProTechMusic/releases/tag/v0.4.4-beta.6",
     "website_commit":  "f0eea7c133839f818eb3ed368a562832d3c5eb08",
     "qa_commit":  "2f93c7d347f93de496071a23d6ee006046ca8501",

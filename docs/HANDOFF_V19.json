@@ -28,7 +28,9 @@
                                 "Gradle assembleRelease SUCCESS, APK v2/v3 signature verified; same certificate as previous signed beta3",
                                 "Signed APK 8,991,827 bytes SHA256 74C54A66C424BC9DEA90F50C3AF1C3FAB2C69EA0EA1299BD312ACDC9321F2928, versionCode 15; no debug benchmark Activity included",
                                 "Created official GitHub prerelease v0.4.2-beta.4 with APK and SHA256SUMS_v042_beta4.txt",
-                                "Website commit f5b69ef pushed; GitHub Pages run 44996041224 SUCCESS; LIVE AR and EN pages HTTP200 show new version APK filename and SHA256"
+                                "Website commit f5b69ef pushed; GitHub Pages run 44996041224 SUCCESS; LIVE AR and EN pages HTTP200 show new version APK filename and SHA256",
+                                "Independent signed in-place update v0.4.1-beta.3 -\u003e v0.4.2-beta.4 succeeded on API35 without uninstall; MainActivity PID 2109, basic test fixture ProTech QA A playback MediaSession PLAYING and mini player pause icon confirmed",
+                                "Initial QA screenshot showed transient emulator System UI not responding; tapping Wait recovered to normally rendered two-track app interface. Must not call system-wide QA fully clean."
                             ],
     "evidence":  [
                      "docs/QA_F14_LIBRARY_PERFORMANCE_20261122.md",
@@ -37,12 +39,17 @@
                      "docs/evidence/f14/android_api35_1000.json",
                      "docs/evidence/f14/android_api35_10000.json",
                      "docs/evidence/f14/android_api35_50000.json",
-                     "docs/evidence/f14/f14_android_runtime_errors.txt"
+                     "docs/evidence/f14/f14_android_runtime_errors.txt",
+                     "docs/QA_SIGNED_BETA4_RELEASE_20261122.md",
+                     "docs/evidence/f14/beta4_signed_upgrade_api35.png",
+                     "docs/evidence/f14/beta4_signed_upgrade_after_wait_api35.png",
+                     "docs/evidence/f14/beta4_signed_playback_api35.png"
                  ],
     "pending":  [
                     "Full 1k/10k/50k distinct real-media files Android MediaStore integration benchmark",
                     "Physical-device background battery/CPU/memory long-session profile and 50k index load UX optimization",
-                    "F15 RC, R01-R15 final gate"
+                    "F15 RC, R01-R15 final gate",
+                    "Investigate intermittent Android emulator System UI ANR during cold start; repeat on physical device and stable emulator"
                 ],
     "next_phase":  "F14_CONTINUE_THEN_F15",
     "safeguards":  [

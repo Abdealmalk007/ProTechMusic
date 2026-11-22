@@ -21,6 +21,12 @@ Date: 2026-11-22. Release channel: **BETA / PREVIEW ONLY**.
 - Arabic page: https://alghad.digital/programs/protech-music/
 - English page: https://alghad.digital/en/programs/protech-music/
 
+## Independent signed upgrade & playback smoke — Android 15 API35
+- In-place signed APK upgrade passed on independent `ProTechMusicQA35_221126` emulator: previous installed signed `v0.4.1-beta.3` (`versionCode=14`) -> `v0.4.2-beta.4` (`versionCode=15`) via `adb install -r`, no uninstall or app-data wipe. `MainActivity` started with active PID 2109.
+- **Test limitation/disclosed incident:** Initial screenshot `docs/evidence/f14/beta4_signed_upgrade_api35.png` showed an Android system dialog "System UI isn't responding". Selecting **Wait** dismissed the dialog; subsequent screenshot `beta4_signed_upgrade_after_wait_api35.png` showed the app's two test-media entries and unobstructed UI. This is a transient emulator/system UI ANR and prevents claiming a completely clean system-wide smoke, though no app-process `AndroidRuntime FATAL EXCEPTION` appeared in the inspected log.
+- Tapping the test fixture `ProTech QA A` put app `MediaSession` in `PlaybackState.PLAYING` and displayed Pause in the mini-player. Evidence screenshot: `docs/evidence/f14/beta4_signed_playback_api35.png`. This verifies basic playback on the test emulator, not audio quality, call interruptions, Bluetooth, or stable physical-device certification.
+- AndroidRuntime log extract: `docs/evidence/f14/beta4_signed_upgrade_runtime_errors.txt` (no app FATAL in inspected window).
+
 ## Remaining gates
 - Original 25 tasks: 11/25 = 44%. Feature F: 13/15 = 86.7%; **F14 remains IN_PROGRESS**, F15 pending. R: 0/15 PASS.
 - True 1k/10k/50k local-media MediaStore integration, physical background-battery discharge/CPU memory tests, index build 50k latency optimization, broad Android/OEM/headset reliability and RC gate are outstanding.

@@ -16,7 +16,9 @@ Status: IN_PROGRESS (not a release gate PASS).
 - All prior core tests still pass.
 
 ## Not verified, cannot mark PASS
-- Android emulator GUI/system audio-session, artwork decode, SAF OpenDocument picker, and on-screen lyric sync need actual instrumentation evidence. Initial API33 headless emulator start exited before ADB connected.
+- Android 35 API emulator installation and MainActivity launch passed a limited smoke test, but visual artwork decode, LRC OpenDocument import, on-screen synchronization and audio-session transitions still need real instrumentation evidence.
+- Runtime smoke evidence: AVD ProTechMusicQA35_211126 (API35), ADB serial emulator-5556, `adb install -r` -> Success / exit 0, `am start` -> exit 0, PID 2304, dumpsys shows visible MainActivity, no app FATAL EXCEPTION in inspected AndroidRuntime logcat window.
+- Screenshot saved locally at qa/f12_launch_api35.png (ignored by Git). It shows the app UI with zero audio tracks and an Android System UI `isn't responding` warning; the emulator environment is unstable for final UI, cover-art, lyric or audio-focus acceptance testing.
 - No real Android phone/Bluetooth/headset test; no background audio-focus regression proof or 1k/10k/50k performance metrics.
 - New source is not included in the existing signed v0.3.9-beta.1 GitHub release.
 - The signed beta available on the site predates this commit. Never link the debug build as the final installable release.

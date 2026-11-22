@@ -1,0 +1,46 @@
+{
+  "project": "ProTech Music",
+  "checkpoint": "HANDOFF_V16",
+  "date": "2026-11-22",
+  "branch": "main",
+  "source_version": "Unreleased post-v0.3.9-beta.1",
+  "status": "IN_PROGRESS_NOT_RELEASE_READY",
+  "overall_percent": 44,
+  "completed_original_tasks": 11,
+  "total_original_tasks": 25,
+  "phase_f_percent": 73.3,
+  "phase_f_completed_steps": 11,
+  "phase_f_total": 15,
+  "phase_r_percent": 0,
+  "phase_r_total": 15,
+  "next_step": "F12",
+  "work_this_session": [
+    "Implemented embedded local artwork with bounded decode",
+    "Implemented Android SAF .lrc import and playback-time synchronized line rendering",
+    "Added four JUnit tests",
+    "Gradle debug APK and 48/48 unit tests PASS",
+    "Published previously signed v0.3.9-beta.1 site listing via website git commit b0249fa",
+    "Regenerated bilingual site search, all four site suites PASS"
+  ],
+  "evidence": "docs/QA_F12_ARTWORK_LRC_BUILD_2026-11-22.md",
+  "build_log": "docs/build_f12_20261122.log",
+  "emulator": "API33 emulator process exited before adb connected; GUI/artwork/audio focus NOT verified",
+  "github_source": "https://github.com/Abdealmalk007/ProTechMusic",
+  "site_repo_commit": "https://github.com/Abdealmalk007/alghad-digital/commit/b0249fa26bcbaea2b15bce6b9dc829a70d4d2d01",
+  "site_page": "https://alghad.digital/programs/protech-music/",
+  "existing_signed_beta": "v0.3.9-beta.1 (predates added lyrics/artwork)",
+  "remaining": [
+    "F12 instrumentation media artwork+lyrics+audio focus",
+    "F13 narrow landscape RTL layouts",
+    "F14 1k/10k/50k indexing and battery benchmarks",
+    "F15 RC gate",
+    "R01-R15 OS/device/performance/privacy/release verification"
+  ],
+  "constraints": [
+    "Never publish DEBUG as stable",
+    "Do not upgrade progress without evidence",
+    "Never delete user media for QA",
+    "Preserve signing keystore and user data"
+  ],
+  "resume": "Read docs/PROGRESS.json docs/RELEASE_CLOSURE_PROGRESS.json docs/HANDOFF_V16.json, inspect Git status and F12 QA evidence; complete F12 real emulator tests then proceed sequentially. Existing signed beta on site is not new debug build."
+}

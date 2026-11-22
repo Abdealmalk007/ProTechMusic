@@ -14,6 +14,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -44,6 +48,20 @@ class MainActivity:ComponentActivity() {
     private val scope=CoroutineScope(Dispatchers.Main + job)
     private val db by lazy {MusicStore(this)}
     private val repository by lazy {AudioRepository(this,db)}
+    private val lyricsStore by lazy {LyricsStore(applicationContext)}
+    private var lyricsTargetUri: String? = null
+    private val pickLyrics = registerForActivityResult(ActivityResultContracts.OpenDocument()) { document ->
+        val target = lyricsTargetUri.also { lyricsTargetUri = null }
+        if (document != null && target != null) scope.launch {
+            try {
+                val count = lyricsStore.importFile(target, document)
+                MusicRuntime.lyricsRevision++
+                Toast.makeText(this@MainActivity,"تم استيراد $count سطرًا من كلمات المقطع",Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(this@MainActivity,"تعذر قراءة LRC أو لا يحتوي على توقيتات صحيحة",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     private var songs by mutableStateOf<List<AudioTrack>>(emptyList())
     private var musicService by mutableStateOf<MusicService?>(null)
     private var allowed by mutableStateOf(false)
@@ -242,6 +260,10 @@ class MainActivity:ComponentActivity() {
                         }
                     },
                     onShare={shareTracks(it)},
+                    onImportLyrics={ track ->
+                        lyricsTargetUri=track.uri
+                        pickLyrics.launch(arrayOf("text/plain","application/octet-stream","*/*"))
+                    },
                     onDelete={deletion.begin(it)},
                     onPlayGroup={tracks,random ->
                         if(tracks.isNotEmpty()) {
@@ -331,6 +353,7 @@ private fun MusicApp(
     onGrant:()->Unit,onRescan:()->Unit,onPick:()->Unit,
     onPlay:(AudioTrack,List<AudioTrack>)->Unit,
     onShare:(List<AudioTrack>)->Unit,
+    onImportLyrics:(AudioTrack)->Unit,
     onDelete:(List<AudioTrack>)->Unit,
     onPlayGroup:(List<AudioTrack>,Boolean)->Unit,
     onExport:()->Unit,onImport:()->Unit,
@@ -468,7 +491,8 @@ private fun MusicApp(
                     service=service,
                     expanded=true,
                     onExpand={showPlayer=false},
-                    onShare={onShare(listOf(it))}
+                    onShare={onShare(listOf(it))},
+                    onImportLyrics=onImportLyrics
                 )
             }
         }
@@ -492,7 +516,7 @@ private fun MusicApp(
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
                 if(MusicRuntime.nowPlaying!=null){
-                    PlayerBar(service=service,expanded=false,onExpand={showPlayer=true},onShare={onShare(listOf(it))})
+                    PlayerBar(service=service,expanded=false,onExpand={showPlayer=true},onShare={onShare(listOf(it))},onImportLyrics=onImportLyrics)
                 }
                 NavigationBar(
                     modifier=Modifier.fillMaxWidth(),
@@ -907,8 +931,16 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
 }
 
 @Composable
-private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,onShare:(AudioTrack)->Unit){
+private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,onShare:(AudioTrack)->Unit,onImportLyrics:(AudioTrack)->Unit){
     val track=MusicRuntime.nowPlaying ?:return
+    val context=LocalContext.current.applicationContext
+    val lyricVersion=MusicRuntime.lyricsRevision
+    val lyrics by produceState(initialValue=emptyList<TimedLyric>(),track.uri,lyricVersion){
+        value=LyricsStore(context).load(track.uri)
+    }
+    val cover by produceState<android.graphics.Bitmap?>(initialValue=null,track.uri,expanded){
+        value=if(expanded) withContext(Dispatchers.IO){CoverArt.read(context,track.uri)} else null
+    }
     Surface(color=Color(0xFF2B2857),contentColor=Color.White,tonalElevation=5.dp){
         Column(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp)){
             Row(verticalAlignment=Alignment.CenterVertically){
@@ -921,6 +953,22 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                 TextButton(onClick={service?.next()}){Text("⏭")}
             }
             if(expanded){
+                Box(Modifier.fillMaxWidth().padding(vertical=6.dp),contentAlignment=Alignment.Center){
+                    if(cover!=null) Image(cover!!.asImageBitmap(),"غلاف المقطع",Modifier.size(144.dp),contentScale=ContentScale.Crop)
+                    else Box(Modifier.size(112.dp).background(deepBlue,RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){
+                        Text("♪",fontSize=52.sp,color=aqua)
+                    }
+                }
+                Row(verticalAlignment=Alignment.CenterVertically){
+                    Text("كلمات الأغنية LRC",Modifier.weight(1f),fontWeight=FontWeight.Medium)
+                    TextButton(onClick={onImportLyrics(track)}){Text("استيراد LRC")}
+                }
+                if(lyrics.isNotEmpty()){
+                    val index=LrcLyrics.activeIndex(lyrics,MusicRuntime.position)
+                    Text(lyrics.getOrNull(index)?.text ?: lyrics.first().text,color=aqua,
+                        modifier=Modifier.fillMaxWidth().padding(bottom=6.dp),maxLines=3)
+                } else Text("يمكن اختيار ملف LRC متزامن مع هذا المقطع",color=Color.LightGray,
+                    style=MaterialTheme.typography.bodySmall)
                 val end=MusicRuntime.duration.coerceAtLeast(1L)
                 var drag by remember{mutableFloatStateOf(-1f)}
                 Slider(value=if(drag>=0)drag else (MusicRuntime.position.toFloat()/end).coerceIn(0f,1f),

@@ -40,6 +40,7 @@ object MusicRuntime {
     var equalizerEnabled by mutableStateOf(false)
     var eqRevision by mutableIntStateOf(0)
     var queueRevision by mutableIntStateOf(0)
+    var lyricsRevision by mutableIntStateOf(0)
     var statsRevision by mutableIntStateOf(0)
 }
 

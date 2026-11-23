@@ -1,7 +1,7 @@
 # ProTech Music
 Native Android offline-first music player by ALGHAD DIGITAL (ProTech).
 
-**Status: Signed Beta Preview, NOT production-ready.** Current source is version `0.4.5-beta.7`; the original 25-task roadmap remains 44% verified, and feature-closure Phase F is 86.7% verified. F14 performance work is still in progress and is not certified as passed. Package: `digital.alghad.protechmusic`. Kotlin 2.1.20, Compose 1.8.2, Material3 1.3.2, Media3 ExoPlayer 1.6.1, Android SDK 35; Android 8+.
+**Status: Signed Beta Preview, NOT production-ready.** Current development source is version `0.4.7-beta.9` (build and publication pending); last verified signed public release is `0.4.6-beta.8`; the original 25-task roadmap remains 44% verified, and feature-closure Phase F is 86.7% verified. F14 performance work is still in progress and is not certified as passed. Package: `digital.alghad.protechmusic`. Kotlin 2.1.20, Compose 1.8.2, Material3 1.3.2, Media3 ExoPlayer 1.6.1, Android SDK 35; Android 8+.
 
 ## Features implemented in source
 - MediaStore scan of all user-accessible audio (not limited to IS_MUSIC=1), including short voice notes.
@@ -9,9 +9,9 @@ Native Android offline-first music player by ALGHAD DIGITAL (ProTech).
 - SAF multi-document import with persisted URI access where supported.
 - Full track list, text search, source filters, favorite marks, multiselect.
 - SQLite playlists: create, rename, remove, add many tracks, reorder playlist entries without deleting source files.
-- ExoPlayer audio playback, background started MediaSession service, notification controls, repeat and shuffle, speed, sleep timer.
+- ExoPlayer audio playback, background started MediaSession service, notification controls, repeat and shuffle, speed, sleep timer. Centered 56/68/56dp transport, luminous currently playing track, in-place pause/resume and ±10s seeking.
 - Per-app audio effects when supported by underlying Android device: Equalizer presets, BassBoost, LoudnessEnhancer with +6 dB cap.
-- Embedded audio artwork (bounded decoding) in Now Playing, MediaSession and notifications; SAF-imported, app-private synchronized local `.lrc` lyrics (API35 emulator verified).
+- Deliberately NO album-cover artwork in Now Playing, MediaSession, notifications or lock screen; SAF-imported, app-private synchronized local `.lrc` lyrics remain supported.
 - Arabic RTL default and persistent English LTR choice; responsive compact/landscape layout, semantic navigation labels and collapsible filters (F13 API35 matrix).
 - Prepared, snapshot-bound search index built off the main UI thread. A printable-ASCII normalization fast path reduces large-library index construction overhead without altering Arabic/Unicode search semantics. Android API35 synthetic 1k/10k/50k benchmarks and 54 JVM tests are documented in `docs/QA_F14_FAST_INDEX_V20_20261122.md`; true 50k media-file scanning and physical battery QA remain pending.
 

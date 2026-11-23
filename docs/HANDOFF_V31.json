@@ -1,0 +1,36 @@
+{
+    "project":  "ProTech Music",
+    "checkpoint":  "HANDOFF_V31",
+    "date":  "2026-11-23",
+    "current_candidate":  "v0.4.7-beta.9",
+    "version_code":  20,
+    "status":  "SOURCE_PUSHED_BUILD_IN_PROGRESS_RELEASE_UNPUBLISHED",
+    "source_commit":  "606c7a483cd88d19bde8bcbd613ec6e7d6eb8951",
+    "source_contract":  "15/15 PASS STATIC ONLY",
+    "build_log":  "docs/build_v047_beta9_all.log",
+    "expected_apk":  "E:\\ProTech\\Releases\\ProTechMusic\\ProTechMusic_v0.4.7_beta9_SIGNED.apk",
+    "last_published":  "v0.4.6-beta.8",
+    "stage_A_pass":  6,
+    "stage_A_total":  15,
+    "stage_B_pass":  0,
+    "stage_B_total":  15,
+    "original_overall_percent":  44,
+    "F_percent":  86.7,
+    "changes":  [
+                    "Centered 56/68/56 dp transport",
+                    "Removed album artwork from player and MediaSession notifications",
+                    "Current track glowing gradient, bright title and border",
+                    "Click playing item toggles pause/resume without queue reset"
+                ],
+    "pending":  [
+                    "Gradle JVM test and debug/release build",
+                    "signed APK and same certificate verification",
+                    "Android emulator UI/manual QA; no device connected",
+                    "GitHub beta9 release and bilingual website live QA"
+                ],
+    "safeguards":  [
+                       "No user music deleted",
+                       "Use existing signing keystore only",
+                       "Do not declare stable/final without physical-device and large-MediaStore gates"
+                   ]
+}

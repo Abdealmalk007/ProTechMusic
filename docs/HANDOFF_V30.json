@@ -1,0 +1,38 @@
+{
+  "project": "ProTech Music",
+  "checkpoint": "HANDOFF_V30",
+  "date": "2026-11-23",
+  "baseline": "HANDOFF_V29",
+  "status": "LOCAL_UI_PATCH_UNBUILT_UNPUBLISHED",
+  "branch": "main",
+  "previous_release": "v0.4.6-beta.8",
+  "official_overall_percent_unchanged": 44,
+  "feature_F_percent_unchanged": 86.7,
+  "stage_A_percent_unchanged": 40,
+  "stage_B_percent_unchanged": 0,
+  "release_R_percent_unchanged": 0,
+  "changes": [
+    "MainActivity.kt: removed expanded player cover-art bitmap loading and visual album cover",
+    "MainActivity.kt: moved transport controls into horizontally centered row below track title to avoid 320dp clipping",
+    "MainActivity.kt: current track row gets distinct teal background and title accent independent of playing/paused state"
+  ],
+  "evidence": [
+    "git diff --check completed without patch whitespace errors",
+    "ADB devices -l returned no connected emulator or handset",
+    "Attempt to run .\\gradlew.bat failed: wrapper absent in project root"
+  ],
+  "unverified": [
+    "Gradle compile and unit tests after V30 change",
+    "320dp emulator visual QA",
+    "runtime transport, MediaSession and lockscreen regression",
+    "new signed Beta APK, SHA256 and signer",
+    "GitHub and bilingual website publication"
+  ],
+  "safeguards": [
+    "No audio, app data or signing key modified",
+    "No other running sessions stopped",
+    "Do not call stable/final",
+    "Do not publish without compile, tests, same signing key, SHA256 and HTTP200"
+  ],
+  "resume": "Locate installed Gradle executable, run JVM/assembleDebug, verify layout at 320dp and MediaSession; fix issues, then release only after signer/hash checks. Keep V29 Beta8 as last verified published release."
+}

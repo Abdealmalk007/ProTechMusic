@@ -14,7 +14,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,10 +22,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -752,7 +750,7 @@ private fun MusicApp(
                             Box(Modifier.weight(1f)){
                                 TrackRow(track=track,selected=false,multiselect=false,
                                     inPlaylist=true,favorite=favorites.contains(track.uri),
-                                    onPlay={service?.queuePlay(index)},onSelect={},
+                                    onPlay={if (index==queueCurrentIndex && service!=null) { if (MusicRuntime.playing) service.pause() else service.resume() } else service?.queuePlay(index)},onSelect={},
                                     onAdd={adding=listOf(track)},onShare={onShare(listOf(track))},
                                     onFavorite={db.toggleFavorite(track.uri);onChanged()},
                                     onRemove={service?.queueRemove(index)},
@@ -899,7 +897,7 @@ private fun MusicApp(
                         val isSelected=selected.contains(track.uri)
                         TrackRow(track=track,selected=isSelected,multiselect=selection,
                             inPlaylist=tab=="playlist",favorite=favorites.contains(track.uri),
-                            onPlay={onPlay(track,filtered)},
+                            onPlay={if (MusicRuntime.nowPlaying?.uri==track.uri && service!=null) { if (MusicRuntime.playing) service.pause() else service.resume() } else onPlay(track,filtered)},
                             onSelect={if(isSelected)selected.remove(track.uri) else selected.add(track.uri)},
                             onAdd={adding=listOf(track)},
                             onShare={onShare(listOf(track))},
@@ -945,8 +943,19 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
     onPlayNext:()->Unit={},onEnqueue:()->Unit={},onPermanentDelete:()->Unit={},
     showQueueActions:Boolean=true,extraInfo:String?=null){
     var menuExpanded by remember(track.uri){mutableStateOf(false)}
+    val isCurrentTrack = MusicRuntime.nowPlaying?.uri == track.uri
+    val activeShape = RoundedCornerShape(14.dp)
+    val activeHighlight = if (isCurrentTrack) Modifier
+        .shadow(12.dp, activeShape, ambientColor=Color(0xFF35E9F4), spotColor=Color(0xFF35E9F4))
+        .background(
+            Brush.horizontalGradient(listOf(Color(0xFF12515F), Color(0xFF2A496E), Color(0xFF12515F))),
+            activeShape
+        )
+        .border(1.5.dp, Color(0xFF77FFF2), activeShape)
+    else Modifier
     Row(
-        Modifier.fillMaxWidth().heightIn(min=72.dp).padding(vertical=4.dp),
+        Modifier.fillMaxWidth().padding(horizontal=4.dp, vertical=4.dp)
+            .then(activeHighlight).heightIn(min=72.dp),
         verticalAlignment=Alignment.CenterVertically,
         horizontalArrangement=Arrangement.spacedBy(6.dp)
     ){
@@ -959,14 +968,16 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
                     .clickable(onClick=onPlay)
                     .semantics{contentDescription=UiLanguage.text("تشغيل ${track.title}")},
                 contentAlignment=Alignment.Center
-            ){Text("▶",color=deepBlue,fontWeight=FontWeight.Bold)}
+            ){Text(if(isCurrentTrack && MusicRuntime.playing)"⏸" else "▶", color=deepBlue,fontWeight=FontWeight.Bold)}
         }
         Column(
             Modifier.weight(1f).heightIn(min=48.dp)
                 .clickable(onClick=if(multiselect)onSelect else onPlay),
             verticalArrangement=Arrangement.Center
         ){
-            Text(track.title,maxLines=1,overflow=TextOverflow.Ellipsis,fontWeight=FontWeight.SemiBold)
+            Text(track.title,maxLines=1,overflow=TextOverflow.Ellipsis,
+                color=if(isCurrentTrack) Color(0xFF80F7E9) else Color.White,
+                fontWeight=if(isCurrentTrack) FontWeight.Bold else FontWeight.SemiBold)
             Text(
                 (track.artist.takeIf{it.isNotBlank()}?.let{"$it • "} ?: "")+
                     "${track.source} • ${readableTime(track.durationMs)}" +
@@ -1028,13 +1039,10 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
     val lyrics by produceState(initialValue=emptyList<TimedLyric>(),track.uri,lyricVersion){
         value=LyricsStore(context).load(track.uri)
     }
-    val cover by produceState<android.graphics.Bitmap?>(initialValue=null,track.uri,expanded){
-        value=if(expanded) withContext(Dispatchers.IO){CoverArt.read(context,track.uri)} else null
-    }
     Surface(color=Color(0xFF2B2857),contentColor=Color.White,tonalElevation=5.dp){
         Column(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp)){
-            Row(verticalAlignment=Alignment.CenterVertically){
-                Column(Modifier.weight(1f).clickable(onClick=onExpand)){
+            Column(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().clickable(onClick=onExpand)){
                     Text(track.title,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
                     Text(if(expanded)track.artist else if(MusicRuntime.playing)
                         (if(UiLanguage.english)"Playing • Open player" else "قيد التشغيل • افتح المشغل")
@@ -1042,6 +1050,7 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                         style=MaterialTheme.typography.bodySmall,color=Color.LightGray,
                         maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
                 IconButton(onClick={service?.previous()},
                     modifier=Modifier.size(56.dp).background(Color(0xFF393861),RoundedCornerShape(16.dp))
                         .semantics{contentDescription=if(UiLanguage.english)"Previous track" else "المقطع السابق"},
@@ -1063,14 +1072,9 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                     modifier=Modifier.size(56.dp).background(Color(0xFF393861),RoundedCornerShape(16.dp))
                         .semantics{contentDescription=if(UiLanguage.english)"Next track" else "المقطع التالي"},
                     enabled=service!=null){Text("⏭",fontSize=29.sp,color=Color.White)}
+                }
             }
             if(expanded){
-                Box(Modifier.fillMaxWidth().padding(vertical=6.dp),contentAlignment=Alignment.Center){
-                    if(cover!=null) Image(cover!!.asImageBitmap(),UiLanguage.text("غلاف المقطع"),Modifier.size(144.dp),contentScale=ContentScale.Crop)
-                    else Box(Modifier.size(112.dp).background(deepBlue,RoundedCornerShape(16.dp)),contentAlignment=Alignment.Center){
-                        Text("♪",fontSize=52.sp,color=aqua)
-                    }
-                }
                 Row(verticalAlignment=Alignment.CenterVertically){
                     Text(UiLanguage.text("كلمات الأغنية LRC"),Modifier.weight(1f),fontWeight=FontWeight.Medium)
                     TextButton(onClick={onImportLyrics(track)}){Text(UiLanguage.text("استيراد LRC"))}

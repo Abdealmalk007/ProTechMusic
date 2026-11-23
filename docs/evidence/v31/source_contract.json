@@ -1,0 +1,23 @@
+{
+  "version": "0.4.7-beta.9",
+  "time_utc": "2026-11-23T05:03:26.331798+00:00",
+  "count": 15,
+  "pass": 15,
+  "checks": {
+    "versionCode20": true,
+    "centeredTransportRow": true,
+    "previousNext56dp": true,
+    "mainPlayPause68dp": true,
+    "accessibleTransport": true,
+    "noCoverImagesInApp": true,
+    "noCoverImagesInNotification": true,
+    "playingTrackGlows": true,
+    "activeTrackContrastingTitle": true,
+    "sameTrackDoesNotRestartQueue": true,
+    "playPauseToggleFromTrackList": true,
+    "playerPauseResumePreserved": true,
+    "resumeSavedPosition": true,
+    "seek10sAndAutoNavigation": true,
+    "mediaSessionNotification": true
+  }
+}

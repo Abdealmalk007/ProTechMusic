@@ -3,7 +3,6 @@ package digital.alghad.protechmusic
 import android.app.*
 import android.content.*
 import android.media.MediaMetadata
-import android.graphics.Bitmap
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.media.audiofx.BassBoost
@@ -62,9 +61,6 @@ class MusicService : Service() {
     private val preferences by lazy {getSharedPreferences("playback",MODE_PRIVATE)}
     private val store by lazy{MusicStore(applicationContext)}
     private val statsScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
-    private val artworkScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
-    private var artworkUri: String?=null
-    private var currentArtwork: Bitmap?=null
     private val listening=ListeningTracker{uri ->
         val now=System.currentTimeMillis()
         statsScope.launch {
@@ -118,7 +114,6 @@ class MusicService : Service() {
                     val track=tracks.getOrNull(currentMediaItemIndex)
                     listening.switchTo(track?.uri,track?.durationMs?:0L,SystemClock.elapsedRealtime(),isPlaying)
                     MusicRuntime.nowPlaying=track
-                    requestArtwork(track)
                     updateSession();showNotification(isPlaying)
                     remember()
                 }
@@ -176,7 +171,6 @@ class MusicService : Service() {
         player.prepare()
         player.play()
         MusicRuntime.nowPlaying=tracks.getOrNull(startIndex)
-        requestArtwork(MusicRuntime.nowPlaying)
         MusicRuntime.queueRevision++
         showNotification(true)
         remember()
@@ -190,7 +184,6 @@ class MusicService : Service() {
             }
         }
         MusicRuntime.nowPlaying=tracks.getOrNull(player.currentMediaItemIndex)
-        requestArtwork(MusicRuntime.nowPlaying)
         MusicRuntime.queueRevision++
         remember()
     }
@@ -366,24 +359,6 @@ class MusicService : Service() {
         try{bassEffect?.setStrength(AudioEffectMath.bassStrength(MusicRuntime.bass));bassEffect?.enabled=(effectsSupport().bass && MusicRuntime.bass>0)}catch(_:Exception){}
         try{loudness?.setTargetGain(AudioEffectMath.loudnessGainMb(MusicRuntime.boost));loudness?.enabled=(effectsSupport().loudness && MusicRuntime.boost>0)}catch(_:Exception){}
     }
-    private fun requestArtwork(track: AudioTrack?) {
-        val selectedUri=track?.uri
-        if(selectedUri==artworkUri)return
-        artworkUri=selectedUri
-        currentArtwork=null
-        if(selectedUri==null)return
-        artworkScope.launch {
-            val image=CoverArt.read(applicationContext,selectedUri)
-            withContext(Dispatchers.Main){
-                if(artworkUri==selectedUri && ::player.isInitialized){
-                    currentArtwork=image
-                    updateSession()
-                    showNotification(player.isPlaying)
-                }
-            }
-        }
-    }
-
     private fun updateSession(){
         if(!::session.isInitialized || !::player.isInitialized)return
         val track=MusicRuntime.nowPlaying
@@ -397,9 +372,6 @@ class MusicService : Service() {
                 .putString(MediaMetadata.METADATA_KEY_TITLE,track.title)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST,track.artist)
                 .putLong(MediaMetadata.METADATA_KEY_DURATION,track.durationMs)
-            if(artworkUri==track.uri)currentArtwork?.let{
-                metadata.putBitmap(MediaMetadata.METADATA_KEY_ART,it)
-            }
             session.setMetadata(metadata.build())
         }
     }
@@ -416,7 +388,6 @@ class MusicService : Service() {
         val n=Notification.Builder(this,"playback")
             .setSmallIcon(R.drawable.app_icon).setContentTitle(current.title)
             .setContentText(current.artist.ifBlank { current.source })
-            .setLargeIcon(if(artworkUri==current.uri)currentArtwork else null)
             .setContentIntent(open).setOngoing(active)
             .addAction(Notification.Action.Builder(android.R.drawable.ic_media_previous,"Previous",actionIntent("PREVIOUS",1)).build())
             .addAction(Notification.Action.Builder(if(active)android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
@@ -453,7 +424,6 @@ class MusicService : Service() {
                 player.prepare()
                 setShuffle(preferences.getBoolean("shuffle",false))
                 MusicRuntime.nowPlaying=saved.getOrNull(player.currentMediaItemIndex)
-                requestArtwork(MusicRuntime.nowPlaying)
                 MusicRuntime.queueRevision++
             }
         }catch(_:Exception){}
@@ -463,7 +433,6 @@ class MusicService : Service() {
         clock.removeCallbacks(tick)
         remember()
         try{eq?.release();bassEffect?.release();loudness?.release()}catch(_:Exception){}
-        artworkScope.cancel()
         statsScope.cancel()
         session.release();player.release()
         super.onDestroy()

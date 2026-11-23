@@ -1,0 +1,53 @@
+{
+    "project":  "ProTech Music",
+    "checkpoint":  "HANDOFF_V32",
+    "date":  "2026-11-23",
+    "status":  "BETA9_SIGNED_GITHUB_SITE_LIVE_ANDROID_RUNTIME_GATE_PENDING",
+    "candidate":  "v0.4.7-beta.9",
+    "version_code":  20,
+    "source_commit":  "057064e8cc69de574414c4466eb07eb0cd0a10ed",
+    "last_published":  "v0.4.7-beta.9",
+    "github_release":  "https://github.com/Abdealmalk007/ProTechMusic/releases/tag/v0.4.7-beta.9",
+    "download":  "https://github.com/Abdealmalk007/ProTechMusic/releases/download/v0.4.7-beta.9/ProTechMusic_v0.4.7_beta9_SIGNED.apk",
+    "website_commit":  "ebff0fe34ce16d0c22003c6257efdbb1711ca712",
+    "github_pages_run":  "45122802282",
+    "site_ar":  "https://alghad.digital/programs/protech-music/",
+    "site_en":  "https://alghad.digital/en/programs/protech-music/",
+    "apk_sha256":  "1B6CBC1A0129369E2F9D27BC4BD4287D7D1F8690D15817A061E7C40BB2744C88",
+    "signer_sha256":  "62889112b8a9eaaf531b508a0d3eb965671ef6a757492cfba3682d35f76e3eb8",
+    "build_qa":  [
+                     "GitHub Actions hosted CI 45118061988 SUCCESS; Gradle testDebugUnitTest assembleDebug assembleRelease BUILD SUCCESSFUL",
+                     "54/54 JUnit tests 0 failures from 9 XML suites",
+                     "V31 static source UX contract 15/15 PASS",
+                     "9/9 signed artifact verification including versionCode20, unchanged signer, SHA256, zipalign, v2 and v3",
+                     "Published GitHub prerelease with both signed APK and SHA256SUMS assets",
+                     "Site smoke/site-search/bilingual/no-duplicates tests all PASS, Pages run 45122802282 SUCCESS",
+                     "Both live Arabic/English URLs HTTP200 with version, APK name and SHA256; direct GitHub APK HTTP200"
+                 ],
+    "features":  [
+                     "56dp previous and next with centered 68dp pause/resume",
+                     "No album cover in player, notification or lock screen metadata",
+                     "Active row glowing gradient with bright title and visible when paused",
+                     "Tap current row toggles pause/resume without resetting queue",
+                     "Position checkpoint and relative seek, automatic next/repeat/shuffle remain"
+                 ],
+    "pending":  [
+                    "UI screenshot and actual Android playback regression for Beta9 not passed; no attached ADB emulator/phone at this verification",
+                    "Real app-visible 10k and 50k MediaStore actual scan pending",
+                    "Physical device headset, Bluetooth, battery and telephony focus pending",
+                    "API26-36 full matrix and production stage B remain pending"
+                ],
+    "stage_a_pass":  6,
+    "stage_a_total":  15,
+    "stage_b_pass":  0,
+    "stage_b_total":  15,
+    "original_overall_percent":  44,
+    "feature_F_percent":  86.7,
+    "stable_release_approved":  false,
+    "safeguards":  [
+                       "Do not call beta9 Stable/Final",
+                       "Preserve user audio and original app data",
+                       "Do not regenerate original keystore",
+                       "Do not infer device PASS from static tests"
+                   ]
+}

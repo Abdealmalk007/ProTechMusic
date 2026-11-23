@@ -17,10 +17,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Use preinstalled Android SDK on hosted runner
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Setup Android command line tools without obsolete tools package
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+      - name: Install API35 and build tools
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'

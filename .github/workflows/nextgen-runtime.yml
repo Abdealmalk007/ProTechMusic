@@ -2,7 +2,7 @@ name: NextGen Android runtime QA
 on:
   push:
     branches: ['feature/nextgen-music-1.0']
-    paths: ['.github/workflows/nextgen-runtime.yml', 'app/src/**']
+    paths: ['.github/workflows/nextgen-runtime.yml', 'app/src/**', 'scripts/qa/nextgen-runtime-ci.sh', 'scripts/qa/nextgen-permission-ui.py']
   workflow_dispatch:
 permissions:
   contents: read

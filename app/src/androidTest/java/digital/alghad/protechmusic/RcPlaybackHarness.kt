@@ -10,6 +10,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
+import kotlin.math.abs
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -25,6 +27,71 @@ import java.util.concurrent.TimeUnit
  * repeat and shuffle controls using locally generated, playable PCM WAV fixtures.
  */
 internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
+    private fun awaitState(label: String, timeoutMs: Long = 8_000, predicate: () -> Boolean) {
+        val deadline = SystemClock.elapsedRealtime() + timeoutMs
+        while (SystemClock.elapsedRealtime() < deadline) {
+            var ok = false
+            instrumentation.runOnMainSync { ok = predicate() }
+            if (ok) return
+            SystemClock.sleep(75)
+        }
+        error("Timed out: $label")
+    }
+
+    private fun verifyTransport(service: MusicService, context: Context, files: MutableList<File>) {
+        // Long synthetic PCM fixtures keep transport checks independent of auto-next timing.
+        val media = (0..2).map { index ->
+            val file = File(context.cacheDir, "protech_qa_autonext_transport_$index.wav")
+            val length = 8_000 * 12
+            val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
+            header.put("RIFF".toByteArray(Charsets.US_ASCII)).putInt(36 + length)
+            header.put("WAVEfmt ".toByteArray(Charsets.US_ASCII)).putInt(16)
+            header.putShort(1).putShort(1).putInt(8_000).putInt(8_000)
+            header.putShort(1).putShort(8).put("data".toByteArray(Charsets.US_ASCII)).putInt(length)
+            file.outputStream().use { it.write(header.array()); it.write(ByteArray(length) { 128.toByte() }) }
+            files.add(file)
+            AudioTrack(uri = Uri.fromFile(file).toString(), title = "QA Transport $index",
+                durationMs = 12_000, sizeBytes = file.length())
+        }
+        val player = service.player
+        fun sameQueue() = service.queueSnapshot().map { it.uri } == media.map { it.uri }
+        instrumentation.runOnMainSync {
+            service.pause()
+            service.playQueue(media, 1)
+        }
+        awaitState("initial playback") { player.isPlaying && player.currentMediaItemIndex == 1 && player.currentPosition >= 350 }
+        repeat(3) { iteration ->
+            instrumentation.runOnMainSync { service.pause() }
+            awaitState("pause $iteration") { !player.isPlaying }
+            var paused = 0L
+            instrumentation.runOnMainSync {
+                check(sameQueue() && player.currentMediaItemIndex == 1)
+                paused = player.currentPosition
+            }
+            SystemClock.sleep(350)
+            instrumentation.runOnMainSync {
+                check(abs(player.currentPosition - paused) <= 200) { "Position advanced while paused" }
+                service.resume()
+            }
+            awaitState("resume $iteration") {
+                player.isPlaying && player.currentMediaItemIndex == 1 && sameQueue() &&
+                    player.currentPosition >= paused + 200
+            }
+        }
+        instrumentation.runOnMainSync { service.pause(); service.seek(6_500) }
+        awaitState("absolute seek") { abs(player.currentPosition - 6_500L) < 250 }
+        instrumentation.runOnMainSync { service.seekRelative(-2_000) }
+        awaitState("relative seek") { abs(player.currentPosition - 4_500L) < 250 }
+        instrumentation.runOnMainSync { service.previous() }
+        awaitState("previous restarts current") { player.currentMediaItemIndex == 1 && player.currentPosition < 250 }
+        instrumentation.runOnMainSync { service.next() }
+        awaitState("next") { player.currentMediaItemIndex == 2 && sameQueue() }
+        instrumentation.runOnMainSync { service.previous() }
+        awaitState("previous item") { player.currentMediaItemIndex == 1 && sameQueue() }
+        instrumentation.runOnMainSync { service.seek(-500) }
+        awaitState("seek lower clamp") { player.currentPosition == 0L }
+    }
+
     fun run() {
         val out = Bundle()
         val context = instrumentation.targetContext
@@ -132,7 +199,8 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
                 controlOk[0] = single && all && off && enabled && !player.shuffleModeEnabled
             }
             check(controlOk[0]) { "Shuffle/repeat control state mismatch" }
-            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF")
+            verifyTransport(playingService, context, files)
+            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous")
             out.putString("transitions", transitionSnapshot.joinToString(","))
             instrumentation.sendStatus(0, out)
             instrumentation.finish(Activity.RESULT_OK, out)

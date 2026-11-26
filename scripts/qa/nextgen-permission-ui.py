@@ -25,15 +25,24 @@ def locate(name, predicate, timeout=40):
             adb("shell", "uiautomator", "dump", "/sdcard/nextgen-permissions.xml")
             xml = adb("shell", "cat", "/sdcard/nextgen-permissions.xml")
             (OUT / (name + ".xml")).write_text(xml, encoding="utf-8")
-            for node in ET.fromstring(xml).iter("node"):
+            root = ET.fromstring(xml)
+            parents = {child: parent for parent in root.iter() for child in parent}
+            for node in root.iter("node"):
                 attrs = node.attrib
                 if predicate(attrs):
-                    x1, y1, x2, y2 = map(int, re.findall(r"\d+", attrs["bounds"]))
+                    # Compose exposes the label as a non-clickable child of the actual button.
+                    target = node
+                    while target.attrib.get("clickable") != "true" and target in parents:
+                        target = parents[target]
+                    if target.attrib.get("clickable") != "true":
+                        continue
+                    x1, y1, x2, y2 = map(int, re.findall(r"\d+", target.attrib["bounds"]))
                     assert x2 > x1 and y2 > y1
                     return (str((x1+x2)//2), str((y1+y2)//2))
         except (subprocess.SubprocessError, ET.ParseError):
             pass
         time.sleep(1)
+    (OUT / (name + ".png")).write_bytes(subprocess.check_output(["adb", "exec-out", "screencap", "-p"], timeout=25))
     raise RuntimeError("Missing visible UI: " + name)
 
 def tap(point):
@@ -47,11 +56,21 @@ def dialog_button(suffix):
 
 assert not package_state("permissions-before")
 adb("shell", "am", "start", "-W", "-n", PKG + "/.MainActivity")
-tap(locate("app-grant-button", grant_button))
-tap(locate("permission-deny-dialog", dialog_button("permission_deny_button")))
+def open_dialog(label, suffix):
+    # Wait until the actual button is visible; retry only while the app button exists.
+    for attempt in range(3):
+        tap(locate(label + f"-{attempt}", grant_button))
+        try:
+            return locate("permission-" + suffix + f"-{attempt}", dialog_button(suffix), timeout=10)
+        except RuntimeError:
+            if attempt == 2:
+                raise
+    raise AssertionError("unreachable")
+
+time.sleep(2)
+tap(open_dialog("app-grant-button", "permission_deny_button"))
 assert not package_state("permissions-denied")
-tap(locate("app-grant-again", grant_button))
-tap(locate("permission-allow-dialog", dialog_button("permission_allow_button")))
+tap(open_dialog("app-grant-again", "permission_allow_button"))
 for _ in range(10):
     if package_state("permissions-after"):
         break

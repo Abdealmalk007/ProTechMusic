@@ -92,6 +92,80 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
         awaitState("seek lower clamp") { player.currentPosition == 0L }
     }
 
+    private fun verifyPlaybackModes(service: MusicService, media: List<AudioTrack>) {
+        val player = service.player
+        val observed = mutableListOf<Pair<Int, Int>>()
+        val listener = object : Player.Listener {
+            override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                observed.add(player.currentMediaItemIndex to reason)
+            }
+        }
+        instrumentation.runOnMainSync { player.addListener(listener) }
+        try {
+            instrumentation.runOnMainSync {
+                service.pause()
+                service.setShuffle(false)
+                while (player.repeatMode != Player.REPEAT_MODE_ONE) service.changeRepeat()
+                service.playQueue(media, 1)
+                observed.clear()
+            }
+            awaitState("repeat one actual end transition", 12_000) {
+                observed.any { it.first == 1 && it.second == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT }
+            }
+            instrumentation.runOnMainSync {
+                check(player.currentMediaItemIndex == 1)
+                service.pause()
+                while (player.repeatMode != Player.REPEAT_MODE_ALL) service.changeRepeat()
+                service.playQueue(media, media.lastIndex)
+                observed.clear()
+            }
+            awaitState("repeat all wraps last to first", 12_000) {
+                observed.any { it.first == 0 && it.second == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO }
+            }
+            var expected = emptyList<Int>()
+            instrumentation.runOnMainSync {
+                service.pause()
+                while (player.repeatMode != Player.REPEAT_MODE_OFF) service.changeRepeat()
+                service.playQueue(media, 0)
+                service.pause()
+                service.setShuffle(true)
+                val timeline = player.currentTimeline
+                check(timeline.windowCount == media.size)
+                val order = mutableListOf<Int>()
+                var index = timeline.getFirstWindowIndex(true)
+                while (index != androidx.media3.common.C.INDEX_UNSET) {
+                    check(index !in order && index in media.indices)
+                    order.add(index)
+                    index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, true)
+                }
+                check(order.size == media.size)
+                expected = order
+                player.seekTo(order.first(), 0L)
+                observed.clear()
+                service.resume()
+            }
+            awaitState("shuffle actual playback to end", 20_000) {
+                player.playbackState == Player.STATE_ENDED
+            }
+            instrumentation.runOnMainSync {
+                val actual = listOf(expected.first()) + observed.filter {
+                    it.second == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO
+                }.map { it.first }
+                check(actual == expected) { "Shuffle order mismatch: expected=$expected actual=$actual" }
+                check(service.queueSnapshot().map { it.uri } == media.map { it.uri })
+                check(player.playerError == null)
+                Log.i("ProTechRcPlayback", "A08 playback shuffle order=$actual")
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                service.pause()
+                player.removeListener(listener)
+                service.setShuffle(false)
+                while (player.repeatMode != Player.REPEAT_MODE_OFF) service.changeRepeat()
+            }
+        }
+    }
+
     fun run() {
         val out = Bundle()
         val context = instrumentation.targetContext
@@ -219,7 +293,8 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             }
             check(controlOk[0]) { "Shuffle/repeat control state mismatch" }
             verifyTransport(playingService, context, files)
-            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous")
+            verifyPlaybackModes(playingService, media)
+            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order")
             out.putString("transitions", transitionSnapshot.joinToString(","))
             instrumentation.sendStatus(0, out)
             instrumentation.finish(Activity.RESULT_OK, out)

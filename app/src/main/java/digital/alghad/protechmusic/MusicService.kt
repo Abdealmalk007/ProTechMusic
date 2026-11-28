@@ -42,6 +42,7 @@ object MusicRuntime {
     var eqRevision by mutableIntStateOf(0)
     var queueRevision by mutableIntStateOf(0)
     var currentQueueIndex by mutableIntStateOf(-1)
+    var sleepMinutes by mutableIntStateOf(0)
     var lyricsRevision by mutableIntStateOf(0)
     var statsRevision by mutableIntStateOf(0)
 }
@@ -88,7 +89,7 @@ class MusicService : Service() {
                     lastPositionCheckpoint=elapsed
                 }
                 if(sleepUntil>0L && SystemClock.elapsedRealtime()>=sleepUntil){
-                    sleepUntil=0L; pause()
+                    sleepUntil=0L; MusicRuntime.sleepMinutes=0; pause()
                 }
             }
             clock.postDelayed(this,500L)
@@ -96,6 +97,7 @@ class MusicService : Service() {
     }
     override fun onCreate() {
         super.onCreate()
+        MusicRuntime.sleepMinutes=0
         MusicRuntime.boost=preferences.getInt("boost",0).coerceIn(0,100)
         MusicRuntime.bass=preferences.getInt("bass",0).coerceIn(0,100)
         MusicRuntime.equalizerEnabled=preferences.getBoolean("eq_enabled",false)
@@ -258,7 +260,9 @@ class MusicService : Service() {
         preferences.edit().putFloat("speed",v).apply()
     }
     fun setSleep(minutes:Int) {
-        sleepUntil=if(minutes<=0)0L else SystemClock.elapsedRealtime()+minutes*60_000L
+        val safe=minutes.coerceIn(0,90)
+        MusicRuntime.sleepMinutes=safe
+        sleepUntil=if(safe==0)0L else SystemClock.elapsedRealtime()+safe*60_000L
     }
     internal fun effectsSupport():AudioEffectsSupport=AudioEffectsSupport(
         equalizer=try{eq?.hasControl()==true}catch(_:Exception){false},

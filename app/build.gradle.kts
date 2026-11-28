@@ -6,8 +6,8 @@ android {
     applicationId = "digital.alghad.protechmusic"
     minSdk = 26
     targetSdk = 35
-    versionCode = 21
-    versionName = "0.4.8-beta.10"
+    versionCode = 22
+    versionName = "0.4.9-beta.11"
     testInstrumentationRunner = "digital.alghad.protechmusic.RcSmokeInstrumentation"
   }
   buildTypes { release { isMinifyEnabled = false } }

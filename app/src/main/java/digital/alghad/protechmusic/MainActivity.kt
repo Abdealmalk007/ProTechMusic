@@ -16,6 +16,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -745,11 +749,32 @@ private fun MusicApp(
                     style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 Text(UiLanguage.text("اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار."),
                     color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
-                LazyColumn(Modifier.fillMaxSize()){
+                val queueListState=rememberLazyListState()
+                LazyColumn(Modifier.fillMaxSize(),state=queueListState){
                     items(queuedTracks.indices.toList(),key={it}){index->
                         val track=queuedTracks[index]
                         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                            if(index==queueCurrentIndex)Text("▶",color=aqua,modifier=Modifier.padding(4.dp))
+                            Box(Modifier.size(40.dp,48.dp)
+                                .semantics { contentDescription=UiLanguage.text("اسحب لتغيير ترتيب المقطع") }
+                                .pointerInput(service,queueRevision,index) {
+                                    var delta=0f
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart={delta=0f},
+                                        onDragCancel={delta=0f},
+                                        onDragEnd={
+                                            val visible=queueListState.layoutInfo.visibleItemsInfo
+                                            val origin=visible.firstOrNull{it.index==index}
+                                            if(origin!=null && abs(delta)>origin.size/3f){
+                                                val center=origin.offset+origin.size/2f+delta
+                                                val target=visible.minByOrNull{abs(it.offset+it.size/2f-center)}?.index
+                                                if(target!=null && target!=index)service?.queueMove(index,target-index)
+                                            }
+                                            delta=0f
+                                        },
+                                        onDrag={change,amount->change.consume();delta+=amount.y})
+                                },contentAlignment=Alignment.Center){
+                                Text(if(index==queueCurrentIndex)"▶ ≡" else "≡",color=aqua)
+                            }
                             Box(Modifier.weight(1f)){
                                 TrackRow(track=track,selected=false,multiselect=false,
                                     inPlaylist=true,favorite=favorites.contains(track.uri),
@@ -1141,7 +1166,7 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
 
 @Composable
 private fun EffectsPanel(service:MusicService?){
-    var sleepMinutes by remember{mutableIntStateOf(0)}
+    val sleepMinutes=MusicRuntime.sleepMinutes
     var selectedPreset by remember{mutableStateOf("")}
     val presets=remember(service){service?.eqPresets().orEmpty()}
     val eqRevision=MusicRuntime.eqRevision
@@ -1201,8 +1226,8 @@ private fun EffectsPanel(service:MusicService?){
             Text(UiLanguage.text("مؤقت النوم"))
             Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
                 listOf(0,5,15,30,45,60,90).forEach{minutes->
-                    FilterChip(selected=sleepMinutes==minutes,onClick={sleepMinutes=minutes;service?.setSleep(minutes)},
-                        label={Text(if(minutes==0)UiLanguage.text("إيقاف") else "$minutes دقيقة")})
+                    FilterChip(selected=sleepMinutes==minutes,onClick={service?.setSleep(minutes)},enabled=service!=null,
+                        label={Text(if(minutes==0)UiLanguage.text("إيقاف") else UiLanguage.text("$minutes دقيقة"))})
                 }
             }
         }

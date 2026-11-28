@@ -94,6 +94,7 @@ object UiLanguage {
         "إيقاف مؤقت" to "Pause",
         "تشغيل" to "Play",
         "اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار." to "Tap a track to play it. Use ⋮ to reorder or remove it from the queue.",
+        "اسحب لتغيير ترتيب المقطع" to "Drag to reorder track",
         "تحديث المكتبة" to "Refresh library",
         "المقطع الحالي" to "Current track",
         "موضع التشغيل" to "Playback position",

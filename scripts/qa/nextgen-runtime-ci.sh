@@ -23,5 +23,6 @@ adb shell am instrument -w -r -e mode playback "$runner" | tee qa-runtime-eviden
 grep -q RC_PLAYBACK_PASS qa-runtime-evidence/playback.txt
 grep -q TRANSPORT_PASS qa-runtime-evidence/playback.txt
 grep -q PLAYBACK_MODES_PASS qa-runtime-evidence/playback.txt
+grep -q MEDIA_SESSION_PASS qa-runtime-evidence/playback.txt
 ! grep -q RC_PLAYBACK_FAIL qa-runtime-evidence/playback.txt
 echo 'NEXTGEN_RUNTIME_PASS'

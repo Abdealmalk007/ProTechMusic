@@ -166,6 +166,63 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
         }
     }
 
+    private fun verifyMediaSession(service: MusicService, media: List<AudioTrack>, context: Context) {
+        val player = service.player
+        val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        instrumentation.runOnMainSync {
+            service.setShuffle(false)
+            while (player.repeatMode != Player.REPEAT_MODE_ALL) service.changeRepeat()
+            service.playQueue(media, 0)
+        }
+        awaitState("media notification", 12_000) {
+            player.isPlaying && manager.activeNotifications.any { it.id == 109 }
+        }
+        lateinit var controller: android.media.session.MediaController
+        instrumentation.runOnMainSync {
+            val notification = manager.activeNotifications.single { it.id == 109 }.notification
+            check(notification.actions.map { it.title.toString() } == listOf("Previous", "Pause", "Next"))
+            val token = if (Build.VERSION.SDK_INT >= 33) {
+                notification.extras.getParcelable(android.app.Notification.EXTRA_MEDIA_SESSION, android.media.session.MediaSession.Token::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                notification.extras.getParcelable<android.media.session.MediaSession.Token>(android.app.Notification.EXTRA_MEDIA_SESSION)
+            } ?: error("Missing MediaSession token")
+            controller = android.media.session.MediaController(context, token)
+            check(controller.packageName == context.packageName)
+            controller.transportControls.pause()
+        }
+        awaitState("session pause") {
+            !player.isPlaying && controller.playbackState?.state == android.media.session.PlaybackState.STATE_PAUSED
+        }
+        instrumentation.runOnMainSync {
+            val n = manager.activeNotifications.single { it.id == 109 }.notification
+            check(n.actions[1].title.toString() == "Play")
+            n.actions[1].actionIntent.send()
+        }
+        awaitState("notification Play pending intent") {
+            player.isPlaying && controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+        }
+        instrumentation.runOnMainSync { controller.transportControls.pause() }
+        awaitState("session paused again") { !player.isPlaying }
+        var nextIndex = 0
+        instrumentation.runOnMainSync {
+            nextIndex = (player.currentMediaItemIndex + 1) % media.size
+            controller.transportControls.skipToNext()
+        }
+        awaitState("session next") {
+            player.currentMediaItemIndex == nextIndex &&
+                controller.metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE) == media[nextIndex].title
+        }
+        instrumentation.runOnMainSync {
+            controller.transportControls.seekTo(1_000L)
+        }
+        awaitState("session seek") { abs(player.currentPosition - 1_000L) < 250 }
+        instrumentation.runOnMainSync {
+            service.pause()
+            while (player.repeatMode != Player.REPEAT_MODE_OFF) service.changeRepeat()
+        }
+    }
+
     fun run() {
         val out = Bundle()
         val context = instrumentation.targetContext
@@ -294,7 +351,8 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             check(controlOk[0]) { "Shuffle/repeat control state mismatch" }
             verifyTransport(playingService, context, files)
             verifyPlaybackModes(playingService, media)
-            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order")
+            verifyMediaSession(playingService, media, context)
+            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order; MEDIA_SESSION_PASS notification token, actions, pause/play, next, seek")
             out.putString("transitions", transitionSnapshot.joinToString(","))
             instrumentation.sendStatus(0, out)
             instrumentation.finish(Activity.RESULT_OK, out)

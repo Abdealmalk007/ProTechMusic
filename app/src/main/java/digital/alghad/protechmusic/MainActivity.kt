@@ -407,13 +407,16 @@ private fun MusicApp(
     val sourceOrder=listOf("WhatsApp","Downloads","Recordings","Telegram","Bluetooth","Music","Podcasts","Audiobooks","System sounds","Imported","Other")
     val sources=remember(songs){songs.groupBy{it.source}}
     val sourceLabels=remember(sources){sourceOrder+(sources.keys-sourceOrder.toSet()).sorted()}
-    val folders=remember(songs){songs.map{it.folder}.filter{it.isNotBlank()}.distinct().sorted()}
-    val artists=remember(songs){songs.map{it.artist.ifBlank{"غير معروف"}}.distinct().sorted()}
-    val albums=remember(songs){songs.map{it.album.ifBlank{"غير معروف"}}.distinct().sorted()}
+    val folderCounts=remember(songs){songs.groupingBy{it.folder}.eachCount()}
+    val artistCounts=remember(songs){songs.groupingBy{it.artist.ifBlank{"غير معروف"}}.eachCount()}
+    val albumCounts=remember(songs){songs.groupingBy{it.album.ifBlank{"غير معروف"}}.eachCount()}
+    val folders=remember(folderCounts){folderCounts.keys.filter{it.isNotBlank()}.sorted()}
+    val artists=remember(artistCounts){artistCounts.keys.sorted()}
+    val albums=remember(albumCounts){albumCounts.keys.sorted()}
     val byUri=remember(songs){songs.associateBy{it.uri}}
     val queueRevision=MusicRuntime.queueRevision
     val queuedTracks=remember(service,queueRevision){service?.queueSnapshot().orEmpty()}
-    val queueCurrentIndex=service?.queueCurrentIndex() ?: -1
+    val queueCurrentIndex=if(service!=null) MusicRuntime.currentQueueIndex else -1
     val filtered=remember(songs,tab,smartFilter,playStats,source,folder,artist,album,playlistUris,favorites,search,searchSort) {
         val base= when(tab) {
             "source" -> songs.filter{it.source==source}
@@ -711,8 +714,7 @@ private fun MusicApp(
                     style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
                 LazyColumn{
                     items(names){name->
-                        val count=if(isArtist)songs.count{it.artist.ifBlank{"غير معروف"}==name}
-                            else songs.count{it.album.ifBlank{"غير معروف"}==name}
+                        val count=(if(isArtist)artistCounts[name] else albumCounts[name]) ?: 0
                         ListItem(
                             headlineContent={Text(name,fontWeight=FontWeight.SemiBold)},
                             supportingContent={Text(UiLanguage.text("$count مقطع"))},
@@ -730,7 +732,7 @@ private fun MusicApp(
                 LazyColumn {
                     items(folders){name->
                         ListItem(headlineContent={Text(name)},supportingContent={
-                            Text(UiLanguage.text("${songs.count{it.folder==name}} مقطع"))
+                            Text(UiLanguage.text("${folderCounts[name] ?: 0} مقطع"))
                         },leadingContent={Text("▣",color=aqua)},
                         modifier=Modifier.clickable{folder=name;tab="folder"})
                         HorizontalDivider(color=Color.DarkGray)
@@ -741,7 +743,7 @@ private fun MusicApp(
             } else if(tab=="queue"){
                 Text(UiLanguage.text("قائمة انتظار التشغيل (${queuedTracks.size})"),
                     style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-                Text("اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار.",
+                Text(UiLanguage.text("اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار."),
                     color=Color.LightGray,style=MaterialTheme.typography.bodySmall)
                 LazyColumn(Modifier.fillMaxSize()){
                     items(queuedTracks.indices.toList(),key={it}){index->
@@ -758,7 +760,7 @@ private fun MusicApp(
                                     onUp={service?.queueMove(index,-1)},
                                     onDown={service?.queueMove(index,1)},
                                     onPermanentDelete={confirmPermanentDelete=listOf(track)},
-                                    showQueueActions=false)
+                                    showQueueActions=false,currentOverride=index==queueCurrentIndex)
                             }
                         }
                         HorizontalDivider(color=Color(0xFF333554),thickness=.5.dp)
@@ -869,10 +871,11 @@ private fun MusicApp(
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick={
-                            filtered.forEach{ if(it.uri !in selected)selected.add(it.uri) }
-                        },enabled=filtered.isNotEmpty()){Text(UiLanguage.text("تحديد الكل (")+filtered.size+")")}
+                            val existing=selected.toHashSet()
+                            selected.addAll(filtered.map{it.uri}.filter{existing.add(it)})
+                        },enabled=filtered.isNotEmpty()){Text(UiLanguage.text("تحديد الكل (${filtered.size})"))}
                         TextButton(onClick={selected.clear()}){Text(UiLanguage.text("إلغاء التحديد"))}
-                        Text(chosen.size.toString()+UiLanguage.text(" محدد"),color=aqua,
+                        Text(UiLanguage.text("${chosen.size} مقطع محدد"),color=aqua,
                             modifier=Modifier.align(Alignment.CenterVertically))
                     }
                     if(chosen.isNotEmpty()){
@@ -942,9 +945,9 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
     favorite:Boolean,onPlay:()->Unit,onSelect:()->Unit,onAdd:()->Unit,onShare:()->Unit,onFavorite:()->Unit,
     onRemove:()->Unit,onUp:()->Unit,onDown:()->Unit,
     onPlayNext:()->Unit={},onEnqueue:()->Unit={},onPermanentDelete:()->Unit={},
-    showQueueActions:Boolean=true,extraInfo:String?=null){
+    showQueueActions:Boolean=true,extraInfo:String?=null,currentOverride:Boolean?=null){
     var menuExpanded by remember(track.uri){mutableStateOf(false)}
-    val isCurrentTrack = MusicRuntime.nowPlaying?.uri == track.uri
+    val isCurrentTrack = currentOverride ?: (MusicRuntime.nowPlaying?.uri == track.uri)
     val activeShape = RoundedCornerShape(14.dp)
     val activeHighlight = if (isCurrentTrack) Modifier
         .shadow(12.dp, activeShape, ambientColor=Color(0xFF35E9F4), spotColor=Color(0xFF35E9F4))

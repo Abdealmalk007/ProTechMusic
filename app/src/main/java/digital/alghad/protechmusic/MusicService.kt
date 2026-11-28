@@ -41,6 +41,7 @@ object MusicRuntime {
     var equalizerEnabled by mutableStateOf(false)
     var eqRevision by mutableIntStateOf(0)
     var queueRevision by mutableIntStateOf(0)
+    var currentQueueIndex by mutableIntStateOf(-1)
     var lyricsRevision by mutableIntStateOf(0)
     var statsRevision by mutableIntStateOf(0)
 }
@@ -75,6 +76,7 @@ class MusicService : Service() {
     private val tick=object:Runnable {
         override fun run() {
             if(::player.isInitialized) {
+                MusicRuntime.currentQueueIndex=if(player.mediaItemCount>0) player.currentMediaItemIndex else -1
                 MusicRuntime.position=player.currentPosition.coerceAtLeast(0L)
                 MusicRuntime.duration=player.duration.takeIf{it>0} ?: MusicRuntime.nowPlaying?.durationMs ?: 0L
                 val elapsed=SystemClock.elapsedRealtime()
@@ -111,6 +113,7 @@ class MusicService : Service() {
                     updateSession();showNotification(isPlaying)
                 }
                 override fun onMediaItemTransition(mediaItem:MediaItem?,reason:Int) {
+                    MusicRuntime.currentQueueIndex=if(mediaItemCount>0) currentMediaItemIndex else -1
                     val track=tracks.getOrNull(currentMediaItemIndex)
                     listening.switchTo(track?.uri,track?.durationMs?:0L,SystemClock.elapsedRealtime(),isPlaying)
                     MusicRuntime.nowPlaying=track

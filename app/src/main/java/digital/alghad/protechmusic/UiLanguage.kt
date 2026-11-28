@@ -93,6 +93,7 @@ object UiLanguage {
         "المقطع السابق" to "Previous track",
         "إيقاف مؤقت" to "Pause",
         "تشغيل" to "Play",
+        "اضغط على مقطع لتشغيله. اختر ⋮ لتغيير ترتيبه أو إزالته من قائمة الانتظار." to "Tap a track to play it. Use ⋮ to reorder or remove it from the queue.",
         "تحديث المكتبة" to "Refresh library",
         "المقطع الحالي" to "Current track",
         "موضع التشغيل" to "Playback position",
@@ -143,6 +144,7 @@ object UiLanguage {
             arabic.startsWith("استئناف ") -> "Resume " + arabic.removePrefix("استئناف ")
             arabic.startsWith("تشغيل ") -> "Play " + arabic.removePrefix("تشغيل ")
             arabic.startsWith("خيارات ") -> "Options for " + arabic.removePrefix("خيارات ")
+            arabic.startsWith("تحديد الكل (") -> arabic.replaceFirst("تحديد الكل", "Select all")
             arabic.startsWith("جميع الصوتيات (") -> arabic.replaceFirst("جميع الصوتيات", "All audio")
             arabic.startsWith("قائمة الانتظار (") -> arabic.replaceFirst("قائمة الانتظار", "Queue")
             arabic.startsWith("كل الصوتيات (") -> arabic.replaceFirst("كل الصوتيات", "All tracks")

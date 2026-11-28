@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -532,11 +533,11 @@ private fun MusicApp(
                 TextButton(onClick=onToggleLanguage,modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp)){
                     Text(if(UiLanguage.english) "عربي" else "EN",color=aqua)
                 }
-                IconButton(onClick=onRescan){Text("⟳",color=aqua,style=MaterialTheme.typography.headlineSmall)}
+                IconButton(onClick=onRescan,modifier=Modifier.semantics { contentDescription=UiLanguage.text("تحديث المكتبة") }){Text("⟳",color=aqua,style=MaterialTheme.typography.headlineSmall)}
             }
         )},
         bottomBar={
-            if(!isLandscape) Column(
+            if(!isLandscape || MusicRuntime.nowPlaying!=null) Column(
                 Modifier.fillMaxWidth()
                     .background(Color(0xFF202243))
                     .windowInsetsPadding(WindowInsets.navigationBars)
@@ -544,7 +545,7 @@ private fun MusicApp(
                 if(MusicRuntime.nowPlaying!=null){
                     PlayerBar(service=service,expanded=false,onExpand={showPlayer=true},onShare={onShare(listOf(it))},onImportLyrics=onImportLyrics)
                 }
-                NavigationBar(
+                if(!isLandscape) NavigationBar(
                     modifier=Modifier.fillMaxWidth(),
                     containerColor=Color(0xFF202243),
                     windowInsets=WindowInsets(0,0,0,0)
@@ -955,7 +956,8 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
     else Modifier
     Row(
         Modifier.fillMaxWidth().padding(horizontal=4.dp, vertical=4.dp)
-            .then(activeHighlight).heightIn(min=72.dp),
+            .then(activeHighlight).heightIn(min=72.dp)
+            .semantics { if(isCurrentTrack) stateDescription=UiLanguage.text("المقطع الحالي") },
         verticalAlignment=Alignment.CenterVertically,
         horizontalArrangement=Arrangement.spacedBy(6.dp)
     ){
@@ -966,7 +968,13 @@ private fun TrackRow(track:AudioTrack,selected:Boolean,multiselect:Boolean,inPla
                 Modifier.size(48.dp)
                     .background(Brush.linearGradient(listOf(purple,aqua)),RoundedCornerShape(12.dp))
                     .clickable(onClick=onPlay)
-                    .semantics{contentDescription=UiLanguage.text("تشغيل ${track.title}")},
+                    .semantics{
+                        contentDescription=when {
+                            isCurrentTrack && MusicRuntime.playing -> UiLanguage.text("إيقاف مؤقت ${track.title}")
+                            isCurrentTrack -> UiLanguage.text("استئناف ${track.title}")
+                            else -> UiLanguage.text("تشغيل ${track.title}")
+                        }
+                    },
                 contentAlignment=Alignment.Center
             ){Text(if(isCurrentTrack && MusicRuntime.playing)"⏸" else "▶", color=deepBlue,fontWeight=FontWeight.Bold)}
         }
@@ -1085,13 +1093,23 @@ private fun PlayerBar(service:MusicService?,expanded:Boolean,onExpand:()->Unit,o
                         modifier=Modifier.fillMaxWidth().padding(bottom=6.dp),maxLines=3)
                 } else Text(UiLanguage.text("يمكن اختيار ملف LRC متزامن مع هذا المقطع"),color=Color.LightGray,
                     style=MaterialTheme.typography.bodySmall)
-                val end=MusicRuntime.duration.coerceAtLeast(1L)
-                var drag by remember{mutableFloatStateOf(-1f)}
-                Slider(value=if(drag>=0)drag else (MusicRuntime.position.toFloat()/end).coerceIn(0f,1f),
-                    onValueChange={drag=it},onValueChangeFinished={service?.seek((drag*end).toLong());drag=-1f})
+                val duration=MusicRuntime.duration
+                var drag by remember(track.uri,duration){mutableFloatStateOf(-1f)}
+                val fraction=if(drag>=0f)drag else PlaybackUiTimeline.fraction(MusicRuntime.position,duration)
+                val shownPosition=if(drag>=0f) PlaybackUiTimeline.target(drag,duration) ?: 0L
+                    else MusicRuntime.position.coerceAtLeast(0L)
+                Slider(value=fraction,
+                    modifier=Modifier.semantics { contentDescription=UiLanguage.text("موضع التشغيل") },
+                    enabled=service!=null && duration>0L,
+                    onValueChange={drag=it},onValueChangeFinished={
+                        PlaybackUiTimeline.target(drag,duration)?.let { service?.seek(it) }
+                        drag=-1f
+                    })
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
-                    Text(readableTime(MusicRuntime.position),style=MaterialTheme.typography.labelSmall)
-                    Text(readableTime(MusicRuntime.duration),style=MaterialTheme.typography.labelSmall)
+                    Text(readableTime(shownPosition),style=MaterialTheme.typography.labelSmall)
+                    Text(if(duration>0L) "−"+readableTime(PlaybackUiTimeline.remaining(shownPosition,duration))
+                        else "—",style=MaterialTheme.typography.labelSmall)
+                    Text(if(duration>0L) readableTime(duration) else "—",style=MaterialTheme.typography.labelSmall)
                 }
                 Row(Modifier.fillMaxWidth().padding(top=4.dp),
                     horizontalArrangement=Arrangement.spacedBy(12.dp)){

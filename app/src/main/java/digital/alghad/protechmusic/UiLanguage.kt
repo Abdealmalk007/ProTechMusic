@@ -93,6 +93,9 @@ object UiLanguage {
         "المقطع السابق" to "Previous track",
         "إيقاف مؤقت" to "Pause",
         "تشغيل" to "Play",
+        "تحديث المكتبة" to "Refresh library",
+        "المقطع الحالي" to "Current track",
+        "موضع التشغيل" to "Playback position",
         "المقطع التالي" to "Next track",
         "غلاف المقطع" to "Track artwork",
         "كلمات الأغنية LRC" to "LRC lyrics",
@@ -136,6 +139,8 @@ object UiLanguage {
         return when {
             arabic.startsWith("إضافة ") && arabic.endsWith(" إلى قائمة") ->
                 "Add " + arabic.removePrefix("إضافة ").removeSuffix(" إلى قائمة") + " to playlist"
+            arabic.startsWith("إيقاف مؤقت ") -> "Pause " + arabic.removePrefix("إيقاف مؤقت ")
+            arabic.startsWith("استئناف ") -> "Resume " + arabic.removePrefix("استئناف ")
             arabic.startsWith("تشغيل ") -> "Play " + arabic.removePrefix("تشغيل ")
             arabic.startsWith("خيارات ") -> "Options for " + arabic.removePrefix("خيارات ")
             arabic.startsWith("جميع الصوتيات (") -> arabic.replaceFirst("جميع الصوتيات", "All audio")

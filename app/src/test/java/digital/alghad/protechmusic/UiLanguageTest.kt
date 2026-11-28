@@ -42,6 +42,11 @@ class UiLanguageTest {
             assertEquals("إضافة $title إلى قائمة", UiLanguage.text("إضافة $title إلى قائمة"))
             UiLanguage.english = true
             assertEquals("Play $title", UiLanguage.text("تشغيل $title"))
+            assertEquals("Pause $title", UiLanguage.text("إيقاف مؤقت $title"))
+            assertEquals("Resume $title", UiLanguage.text("استئناف $title"))
+            assertEquals("Current track", UiLanguage.text("المقطع الحالي"))
+            assertEquals("Refresh library", UiLanguage.text("تحديث المكتبة"))
+            assertEquals("Playback position", UiLanguage.text("موضع التشغيل"))
             assertEquals("Options for $title", UiLanguage.text("خيارات $title"))
             assertEquals("Add $title to playlist", UiLanguage.text("إضافة $title إلى قائمة"))
             assertEquals("Play in order", UiLanguage.text("تشغيل بالترتيب"))

@@ -99,11 +99,21 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
         var connection: ServiceConnection? = null
         var bound = false
         var service: MusicService? = null
+        var activity: Activity? = null
         try {
             check(Build.FINGERPRINT.contains("generic", ignoreCase = true) ||
                 Build.MODEL.contains("Emulator") ||
                 Build.MODEL.startsWith("sdk_")) {
                 "Playback instrumentation refuses physical device"
+            }
+            // Instrumentation can restart the target process, invalidating an earlier adb launch.
+            val visibleActivity = instrumentation.startActivitySync(
+                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            activity = visibleActivity
+            instrumentation.waitForIdleSync()
+            awaitState("foreground activity for audio focus", 15_000) {
+                !visibleActivity.isDestroyed && visibleActivity.hasWindowFocus()
             }
             repeat(3) { index ->
                 val file = File(context.cacheDir, "protech_qa_autonext_$index.wav")
@@ -163,6 +173,9 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
                 player.repeatMode = Player.REPEAT_MODE_OFF
                 playingService.setShuffle(false)
                 player.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                        Log.e("ProTechRcPlayback", "Player error: " + error.errorCodeName, error)
+                    }
                     override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
                         val index = player.currentMediaItemIndex
                         transitions.add(index)
@@ -175,10 +188,16 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
                 }
             }
             val gotNext = arrived.await(16, TimeUnit.SECONDS)
-            val transitionSnapshot = transitions.toList()
+            val transitionSnapshot = synchronized(transitions) { transitions.toList() }
+            var diagnostic = ""
+            instrumentation.runOnMainSync {
+                val p = playingService.player
+                diagnostic = "state=${p.playbackState}, playWhenReady=${p.playWhenReady}, isPlaying=${p.isPlaying}, suppression=${p.playbackSuppressionReason}, position=${p.currentPosition}, duration=${p.duration}, playerError=${p.playerError?.errorCodeName}, windowFocus=${visibleActivity.hasWindowFocus()}"
+            }
+            Log.i("ProTechRcPlayback", "Auto-next diagnostics: $diagnostic")
             check(gotNext && transitionSnapshot.indexOf(1) != -1 &&
                 transitionSnapshot.indexOf(2) > transitionSnapshot.indexOf(1)) {
-                "Automatic next/ordered transition failed: $transitionSnapshot"
+                "Automatic next/ordered transition failed: $transitionSnapshot; $diagnostic"
             }
             val controlOk = booleanArrayOf(false)
             instrumentation.runOnMainSync {
@@ -223,6 +242,7 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             if (bound && connection != null) {
                 try { context.unbindService(connection) } catch (_: Exception) { }
             }
+            activity?.runOnUiThread { activity?.finish() }
             for (file in files) {
                 if (file.name.startsWith("protech_qa_autonext_") &&
                     file.parentFile == context.cacheDir) {

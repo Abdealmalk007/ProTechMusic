@@ -1,8 +1,5 @@
-name: NextGen Android runtime QA
+name: NextGen Beta11 final candidate QA
 on:
-  push:
-    branches: ['feature/nextgen-music-1.0']
-    paths: ['.github/workflows/nextgen-runtime.yml', 'app/src/**', 'scripts/qa/nextgen-runtime-ci.sh', 'scripts/qa/nextgen-permission-ui.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,8 +20,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Build debug and instrumentation APKs
-        run: gradle --no-daemon --console=plain :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Build debug, release and instrumentation APKs
+        run: |
+          grep -q 'versionCode = 22' app/build.gradle.kts
+          grep -q 'versionName = "0.4.9-beta.11"' app/build.gradle.kts
+          gradle --no-daemon --console=plain :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
+      - name: Upload unsigned candidate for local signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: protech-music-beta11-unsigned-qa
+          path: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/test-results/testDebugUnitTest/TEST-*.xml
+          if-no-files-found: error
+          retention-days: 14
       - name: Enable KVM on hosted runner
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

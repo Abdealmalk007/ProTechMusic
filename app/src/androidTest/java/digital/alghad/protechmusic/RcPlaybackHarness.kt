@@ -228,6 +228,37 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
         return android.os.ParcelFileDescriptor.AutoCloseInputStream(fd).bufferedReader().use { it.readText() }
     }
 
+    private fun verifyTransientAudioFocus(service: MusicService, media: List<AudioTrack>, context: Context) {
+        val player = service.player
+        val audioManager = context.getSystemService(android.media.AudioManager::class.java)
+        val listener = android.media.AudioManager.OnAudioFocusChangeListener { }
+        val request = android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setOnAudioFocusChangeListener(listener).build()
+        instrumentation.runOnMainSync {
+            service.setShuffle(false)
+            while (player.repeatMode != Player.REPEAT_MODE_ONE) service.changeRepeat()
+            service.playQueue(media, 0)
+        }
+        awaitState("playing before competing audio focus") { player.isPlaying }
+        try {
+            var result = android.media.AudioManager.AUDIOFOCUS_REQUEST_FAILED
+            instrumentation.runOnMainSync { result = audioManager.requestAudioFocus(request) }
+            check(result == android.media.AudioManager.AUDIOFOCUS_REQUEST_GRANTED) { "Competing focus not granted" }
+            awaitState("transient focus loss pauses/suppresses audio") { !player.isPlaying }
+        } finally {
+            instrumentation.runOnMainSync { audioManager.abandonAudioFocusRequest(request) }
+        }
+        awaitState("playback resumes after transient focus gain", 12_000) { player.isPlaying }
+        instrumentation.runOnMainSync {
+            service.pause()
+            while (player.repeatMode != Player.REPEAT_MODE_OFF) service.changeRepeat()
+        }
+        Log.i("ProTechRcPlayback", "TRANSIENT_AUDIO_FOCUS_PASS")
+    }
+
     private fun verifyBackgroundAndRecovery(service: MusicService, media: List<AudioTrack>, context: Context) {
         val player = service.player
         val power = context.getSystemService(android.os.PowerManager::class.java)
@@ -250,12 +281,15 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             awaitState("display asleep") { !power.isInteractive }
             var start = 0
             instrumentation.runOnMainSync { start = repeats }
-            awaitState("audio continues across five loops with display off", 25_000) {
-                !power.isInteractive && player.isPlaying && repeats >= start + 5
+            val sleepStarted = SystemClock.elapsedRealtime()
+            awaitState("audio continues for two minutes with display off", 150_000) {
+                !power.isInteractive && player.isPlaying && repeats >= start + 50 &&
+                    SystemClock.elapsedRealtime() - sleepStarted >= 120_000
             }
             shell("input keyevent KEYCODE_WAKEUP")
             awaitState("display awake") { power.isInteractive }
-            // A lock-screen check is only credited when the keyguard is actually shown.
+            // The disposable CI emulator is configured to display the swipe keyguard.
+            awaitState("keyguard visible", 10_000) { keyguard.isKeyguardLocked }
             if (keyguard.isKeyguardLocked) {
                 shell("cmd media_session dispatch pause")
                 awaitState("system media pause at keyguard") { !player.isPlaying }
@@ -265,12 +299,12 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
                 check(keyguard.isKeyguardLocked)
                 Log.i("ProTechRcPlayback", "KEYGUARD_TRANSPORT_PASS")
             } else {
-                Log.i("ProTechRcPlayback", "KEYGUARD_NOT_PRESENT")
+                error("Keyguard disappeared before system media controls could be tested")
             }
             shell("wm dismiss-keyguard")
             shell("am start -W -n " + context.packageName + "/.MainActivity")
             awaitState("screen awake after background") { power.isInteractive }
-            Log.i("ProTechRcPlayback", "BACKGROUND_SHORT_PASS five repeat transitions while screen off")
+            Log.i("ProTechRcPlayback", "BACKGROUND_120S_PASS at least 50 repeat transitions while screen off")
         } finally {
             shell("input keyevent KEYCODE_WAKEUP")
             shell("wm dismiss-keyguard")
@@ -296,6 +330,19 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             player.playerError == null && player.isPlaying && player.currentMediaItemIndex == 0
         }
         instrumentation.runOnMainSync { service.pause() }
+        val corrupt = File(context.cacheDir, "protech_qa_corrupt_audio.wav")
+        check(!corrupt.exists())
+        try {
+            corrupt.writeBytes("Not a valid audio container".toByteArray(Charsets.US_ASCII))
+            val badTrack = media.first().copy(uri = Uri.fromFile(corrupt).toString(), title = "Corrupt QA source")
+            instrumentation.runOnMainSync { service.playQueue(listOf(badTrack)) }
+            awaitState("corrupt file error", 12_000) { player.playerError != null }
+            instrumentation.runOnMainSync { service.playQueue(media, 0) }
+            awaitState("recover after corrupt file", 12_000) {
+                player.playerError == null && player.isPlaying && player.currentMediaItemIndex == 0
+            }
+            instrumentation.runOnMainSync { service.pause() }
+        } finally { corrupt.delete() }
     }
 
     fun run() {
@@ -427,8 +474,9 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             verifyTransport(playingService, context, files)
             verifyPlaybackModes(playingService, media)
             verifyMediaSession(playingService, media, context)
+            verifyTransientAudioFocus(playingService, media, context)
             verifyBackgroundAndRecovery(playingService, media, context)
-            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order; MEDIA_SESSION_PASS notification token, actions, pause/play, next, seek; BACKGROUND_SHORT_PASS; MISSING_MEDIA_RECOVERY_PASS")
+            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order; MEDIA_SESSION_PASS notification token, actions, pause/play, next, seek; TRANSIENT_AUDIO_FOCUS_PASS; KEYGUARD_TRANSPORT_PASS; BACKGROUND_120S_PASS; MISSING_MEDIA_RECOVERY_PASS; CORRUPT_MEDIA_RECOVERY_PASS")
             out.putString("transitions", transitionSnapshot.joinToString(","))
             instrumentation.sendStatus(0, out)
             instrumentation.finish(Activity.RESULT_OK, out)

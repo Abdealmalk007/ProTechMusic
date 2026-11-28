@@ -19,12 +19,17 @@ grep -q RC_SMOKE_PASS qa-runtime-evidence/smoke.txt
 ! grep -q RC_SMOKE_FAIL qa-runtime-evidence/smoke.txt
 adb shell am force-stop "$pkg"
 adb shell am start -W -n "$pkg/.MainActivity"
+adb shell locksettings set-disabled false
+adb shell settings put secure lock_screen_lock_after_timeout 0
 adb shell am instrument -w -r -e mode playback "$runner" | tee qa-runtime-evidence/playback.txt
 grep -q RC_PLAYBACK_PASS qa-runtime-evidence/playback.txt
 grep -q TRANSPORT_PASS qa-runtime-evidence/playback.txt
 grep -q PLAYBACK_MODES_PASS qa-runtime-evidence/playback.txt
 grep -q MEDIA_SESSION_PASS qa-runtime-evidence/playback.txt
-grep -q BACKGROUND_SHORT_PASS qa-runtime-evidence/playback.txt
+grep -q TRANSIENT_AUDIO_FOCUS_PASS qa-runtime-evidence/playback.txt
+grep -q KEYGUARD_TRANSPORT_PASS qa-runtime-evidence/playback.txt
+grep -q BACKGROUND_120S_PASS qa-runtime-evidence/playback.txt
+grep -q CORRUPT_MEDIA_RECOVERY_PASS qa-runtime-evidence/playback.txt
 grep -q MISSING_MEDIA_RECOVERY_PASS qa-runtime-evidence/playback.txt
 ! grep -q RC_PLAYBACK_FAIL qa-runtime-evidence/playback.txt
 echo 'NEXTGEN_RUNTIME_PASS'

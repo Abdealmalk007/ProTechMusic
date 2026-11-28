@@ -1,4 +1,4 @@
-name: ProTech Music Beta 9 build and JVM QA
+name: ProTech Music Beta 10 build and JVM QA
 
 on:
   workflow_dispatch:
@@ -28,15 +28,15 @@ jobs:
           gradle-version: '8.11.1'
       - name: Check version
         run: |
-          grep -q 'versionCode = 20' app/build.gradle.kts
-          grep -q 'versionName = "0.4.7-beta.9"' app/build.gradle.kts
+          grep -q 'versionCode = 21' app/build.gradle.kts
+          grep -q 'versionName = "0.4.8-beta.10"' app/build.gradle.kts
       - name: JVM unit tests, debug APK and unsigned release APK
         run: gradle --no-daemon --console=plain :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
       - name: Upload unsigned APK and test evidence
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: protech-music-beta9-unsigned-qa
+          name: protech-music-beta10-unsigned-qa
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk
             app/build/outputs/apk/debug/app-debug.apk

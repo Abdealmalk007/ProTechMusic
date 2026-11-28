@@ -5,7 +5,7 @@ case "$count" in 1000|10000|50000) ;; *) exit 2;; esac
 pkg=digital.alghad.protechmusic
 out=qa-scale-evidence
 mkdir -p "$out"
-trap 'adb logcat -d -t 1800 > "$out/logcat.txt" || true' EXIT
+trap 'adb shell run-as "$pkg" cat "files/f14_real_${count}_diagnostics.json" > "$out/diagnostics.json" 2>/dev/null || true; adb logcat -d -t 1800 > "$out/logcat.txt" || true' EXIT
 test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
 test "$(adb shell getprop ro.build.version.sdk | tr -d '\r')" = 35
 test "$(adb devices | grep -c $'\tdevice$')" = 1

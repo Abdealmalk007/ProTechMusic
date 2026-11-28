@@ -132,32 +132,54 @@ class F14RealMediaQaActivity : Activity() {
         var scanMs = 0.0
         var matched: List<AudioTrack> = emptyList()
         val scanSamples = JSONArray()
-        // Allow MediaProvider to finalize metadata; record actual times, don't invent.
-        for (attempt in 0 until 5) {
+        // Match provider IDs rather than TITLE, which metadata extraction can change.
+        val expectedNames = (0 until count).map { prefix + it.toString().padStart(5, '0') + ".wav" }.toSet()
+        val diagnostics = JSONArray()
+        var verified = false
+        val diagnosticFile = File(filesDir, "f14_real_${count}_diagnostics.json")
+        for (attempt in 0 until 30) {
+            val rows = LinkedHashMap<Long, String>()
+            val finalNames = HashSet<String>()
+            var rowCount = 0
+            var incorrectSize = 0
+            resolver.query(collection, arrayOf(MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Media.SIZE),
+                "${MediaStore.Audio.Media.RELATIVE_PATH}=?", arrayOf(folder), null)?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(1).orEmpty()
+                    rowCount++
+                    finalNames.add(name)
+                    rows[cursor.getLong(0)] = name
+                    if (cursor.getLong(2) != wav.size.toLong()) incorrectSize++
+                }
+            }
             val before = System.nanoTime()
             scan = runBlocking { AudioRepository(this@F14RealMediaQaActivity,
                 MusicStore(this@F14RealMediaQaActivity)).scan() }
             scanMs = ms(before)
             scanSamples.put(scanMs)
-            matched = scan.filter { it.title.startsWith(prefix) && it.folder == "ProTechMusicQA_F14_V22_${count}" }
-            if (matched.size >= count) break
-            if (attempt < 4) Thread.sleep(1_000)
-        }
-        check(matched.size == count) {
-            "Real MediaStore scan mismatch: expected $count, found ${matched.size} (total ${scan.size})"
-        }
-        check(matched.distinctBy { it.uri }.size == count)
-        val finalNames = HashSet<String>()
-        var rowCount = 0
-        resolver.query(collection, arrayOf(MediaStore.Audio.Media.DISPLAY_NAME),
-            "${MediaStore.Audio.Media.RELATIVE_PATH}=?", arrayOf(folder), null)?.use { cursor ->
-            while (cursor.moveToNext()) {
-                val name = cursor.getString(0).orEmpty()
-                if (name.startsWith(prefix)) { rowCount++; finalNames.add(name) }
+            val fixtureTracks = scan.filter { it.folder == "ProTechMusicQA_F14_V22_${count}" }
+            matched = fixtureTracks.filter {
+                runCatching { android.content.ContentUris.parseId(Uri.parse(it.uri)) }.getOrNull()?.let { id -> id in rows } == true
             }
+            val matchedIds = matched.map { android.content.ContentUris.parseId(Uri.parse(it.uri)) }.toSet()
+            diagnostics.put(JSONObject().put("attempt", attempt + 1)
+                .put("provider_rows", rowCount).put("unique_names", finalNames.size)
+                .put("incorrect_size", incorrectSize).put("repository_tracks", fixtureTracks.size)
+                .put("matched_ids", matchedIds.size)
+                .put("missing_names", JSONArray((expectedNames - finalNames).take(20)))
+                .put("unexpected_names", JSONArray((finalNames - expectedNames).take(20)))
+                .put("missing_ids", JSONArray((rows.keys - matchedIds).take(20)))
+                .put("scan_ms", scanMs))
+            diagnosticFile.writeText(diagnostics.toString(2))
+            verified = rowCount == count && finalNames == expectedNames &&
+                incorrectSize == 0 && rows.size == count && fixtureTracks.size == count &&
+                matched.size == count && matchedIds == rows.keys
+            if (verified) break
+            if (attempt < 29) Thread.sleep(2_000)
         }
-        val expectedNames = (0 until count).map { prefix + it.toString().padStart(5, '0') + ".wav" }.toSet()
-        check(rowCount == count && finalNames == expectedNames) { "Fixture filename set mismatch: rows=$rowCount unique=${finalNames.size}" }
+        check(verified) { "Real MediaStore identity/size/count mismatch: see ${diagnosticFile.name}" }
+        check(matched.distinctBy { it.uri }.size == count)
         val indexBefore = System.nanoTime()
         val prepared = TrackSearchEngine.prepare(scan)
         val indexMs = ms(indexBefore)

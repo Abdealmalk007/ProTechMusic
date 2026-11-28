@@ -134,6 +134,10 @@ object UiLanguage {
         if (!english) return arabic
         translations[arabic]?.let { return it }
         return when {
+            arabic.startsWith("إضافة ") && arabic.endsWith(" إلى قائمة") ->
+                "Add " + arabic.removePrefix("إضافة ").removeSuffix(" إلى قائمة") + " to playlist"
+            arabic.startsWith("تشغيل ") -> "Play " + arabic.removePrefix("تشغيل ")
+            arabic.startsWith("خيارات ") -> "Options for " + arabic.removePrefix("خيارات ")
             arabic.startsWith("جميع الصوتيات (") -> arabic.replaceFirst("جميع الصوتيات", "All audio")
             arabic.startsWith("قائمة الانتظار (") -> arabic.replaceFirst("قائمة الانتظار", "Queue")
             arabic.startsWith("كل الصوتيات (") -> arabic.replaceFirst("كل الصوتيات", "All tracks")

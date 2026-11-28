@@ -32,4 +32,23 @@ class UiLanguageTest {
             UiLanguage.english = previous
         }
     }
+    @Test fun dynamicTrackActionsRespectSelectedLanguageAndPreserveMetadata() {
+        val previous = UiLanguage.english
+        try {
+            val title = "مقطع تجريبي • Track 42"
+            UiLanguage.english = false
+            assertEquals("تشغيل $title", UiLanguage.text("تشغيل $title"))
+            assertEquals("خيارات $title", UiLanguage.text("خيارات $title"))
+            assertEquals("إضافة $title إلى قائمة", UiLanguage.text("إضافة $title إلى قائمة"))
+            UiLanguage.english = true
+            assertEquals("Play $title", UiLanguage.text("تشغيل $title"))
+            assertEquals("Options for $title", UiLanguage.text("خيارات $title"))
+            assertEquals("Add $title to playlist", UiLanguage.text("إضافة $title إلى قائمة"))
+            assertEquals("Play in order", UiLanguage.text("تشغيل بالترتيب"))
+            assertEquals("Add to playlist", UiLanguage.text("إضافة إلى قائمة"))
+        } finally {
+            UiLanguage.english = previous
+        }
+    }
+
 }

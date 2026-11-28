@@ -4,6 +4,11 @@ on:
     branches: ['feature/nextgen-music-1.0']
     paths: ['.github/workflows/nextgen-real-scale.yml', 'scripts/qa/nextgen-real-scale.sh']
   workflow_dispatch:
+    inputs:
+      counts:
+        description: Fixture sizes as JSON array (1000, 10000, 50000)
+        required: true
+        default: '[1000,10000,50000]'
 permissions:
   contents: read
 jobs:
@@ -37,7 +42,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        count: [1000, 10000, 50000]
+        count: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.counts || '[1000]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

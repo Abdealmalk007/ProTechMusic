@@ -30,6 +30,11 @@ class F14RealMediaQaActivity : Activity() {
             finish()
             return
         }
+        // Activity recreation may otherwise start another writer for the same fixture.
+        if (!fixtureRunning.compareAndSet(false, true)) {
+            Log.i(TAG, "Ignoring duplicate fixture activity while worker is active")
+            return
+        }
         Thread({
             try {
                 val report = runFixture(count, scanOnly)
@@ -39,6 +44,7 @@ class F14RealMediaQaActivity : Activity() {
                 File(filesDir, "f14_real_$count.error").writeText(error.stackTraceToString())
                 Log.e(TAG, "FAILED $count", error)
             } finally {
+                fixtureRunning.set(false)
                 runOnUiThread { finish() }
             }
         }, "F14-RealMediaStoreQa").start()
@@ -141,6 +147,17 @@ class F14RealMediaQaActivity : Activity() {
             "Real MediaStore scan mismatch: expected $count, found ${matched.size} (total ${scan.size})"
         }
         check(matched.distinctBy { it.uri }.size == count)
+        val finalNames = HashSet<String>()
+        var rowCount = 0
+        resolver.query(collection, arrayOf(MediaStore.Audio.Media.DISPLAY_NAME),
+            "${MediaStore.Audio.Media.RELATIVE_PATH}=?", arrayOf(folder), null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(0).orEmpty()
+                if (name.startsWith(prefix)) { rowCount++; finalNames.add(name) }
+            }
+        }
+        val expectedNames = (0 until count).map { prefix + it.toString().padStart(5, '0') + ".wav" }.toSet()
+        check(rowCount == count && finalNames == expectedNames) { "Fixture filename set mismatch: rows=$rowCount unique=${finalNames.size}" }
         val indexBefore = System.nanoTime()
         val prepared = TrackSearchEngine.prepare(scan)
         val indexMs = ms(indexBefore)
@@ -175,5 +192,6 @@ class F14RealMediaQaActivity : Activity() {
 
     private companion object {
         const val TAG = "ProTechF14Real"
+        val fixtureRunning = java.util.concurrent.atomic.AtomicBoolean(false)
     }
 }

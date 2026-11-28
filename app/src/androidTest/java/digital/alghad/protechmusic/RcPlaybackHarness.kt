@@ -223,6 +223,81 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
         }
     }
 
+    private fun shell(command: String): String {
+        val fd = instrumentation.uiAutomation.executeShellCommand(command)
+        return android.os.ParcelFileDescriptor.AutoCloseInputStream(fd).bufferedReader().use { it.readText() }
+    }
+
+    private fun verifyBackgroundAndRecovery(service: MusicService, media: List<AudioTrack>, context: Context) {
+        val player = service.player
+        val power = context.getSystemService(android.os.PowerManager::class.java)
+        val keyguard = context.getSystemService(android.app.KeyguardManager::class.java)
+        var repeats = 0
+        val listener = object : Player.Listener {
+            override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) repeats++
+            }
+        }
+        instrumentation.runOnMainSync {
+            player.addListener(listener)
+            service.setShuffle(false)
+            while (player.repeatMode != Player.REPEAT_MODE_ONE) service.changeRepeat()
+            service.playQueue(media, 0)
+        }
+        try {
+            awaitState("foreground playback before sleep") { player.isPlaying }
+            shell("input keyevent KEYCODE_SLEEP")
+            awaitState("display asleep") { !power.isInteractive }
+            var start = 0
+            instrumentation.runOnMainSync { start = repeats }
+            awaitState("audio continues across five loops with display off", 25_000) {
+                !power.isInteractive && player.isPlaying && repeats >= start + 5
+            }
+            shell("input keyevent KEYCODE_WAKEUP")
+            awaitState("display awake") { power.isInteractive }
+            // A lock-screen check is only credited when the keyguard is actually shown.
+            if (keyguard.isKeyguardLocked) {
+                shell("cmd media_session dispatch pause")
+                awaitState("system media pause at keyguard") { !player.isPlaying }
+                check(keyguard.isKeyguardLocked)
+                shell("cmd media_session dispatch play")
+                awaitState("system media play at keyguard") { player.isPlaying }
+                check(keyguard.isKeyguardLocked)
+                Log.i("ProTechRcPlayback", "KEYGUARD_TRANSPORT_PASS")
+            } else {
+                Log.i("ProTechRcPlayback", "KEYGUARD_NOT_PRESENT")
+            }
+            shell("wm dismiss-keyguard")
+            shell("am start -W -n " + context.packageName + "/.MainActivity")
+            awaitState("screen awake after background") { power.isInteractive }
+            Log.i("ProTechRcPlayback", "BACKGROUND_SHORT_PASS five repeat transitions while screen off")
+        } finally {
+            shell("input keyevent KEYCODE_WAKEUP")
+            shell("wm dismiss-keyguard")
+            instrumentation.runOnMainSync {
+                player.removeListener(listener)
+                service.pause()
+                while (player.repeatMode != Player.REPEAT_MODE_OFF) service.changeRepeat()
+            }
+        }
+
+        // A missing source must report an error without killing the process; a valid
+        // queue submitted afterward must recover. Do not touch user media.
+        val missing = File(context.cacheDir, "protech_qa_missing_never_created.wav")
+        check(!missing.exists())
+        val invalid = media.first().copy(uri = Uri.fromFile(missing).toString(), title = "Missing QA source")
+        instrumentation.runOnMainSync { service.playQueue(listOf(invalid)) }
+        awaitState("missing file error", 12_000) { player.playerError != null }
+        instrumentation.runOnMainSync {
+            check(!player.isPlaying)
+            service.playQueue(media, 0)
+        }
+        awaitState("recover with valid media", 12_000) {
+            player.playerError == null && player.isPlaying && player.currentMediaItemIndex == 0
+        }
+        instrumentation.runOnMainSync { service.pause() }
+    }
+
     fun run() {
         val out = Bundle()
         val context = instrumentation.targetContext
@@ -352,7 +427,8 @@ internal class RcPlaybackHarness(private val instrumentation: Instrumentation) {
             verifyTransport(playingService, context, files)
             verifyPlaybackModes(playingService, media)
             verifyMediaSession(playingService, media, context)
-            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order; MEDIA_SESSION_PASS notification token, actions, pause/play, next, seek")
+            verifyBackgroundAndRecovery(playingService, media, context)
+            out.putString("stream", "RC_PLAYBACK_PASS: auto-next 0->1->2; repeat OFF/ONE/ALL; shuffle ON/OFF; TRANSPORT_PASS pause/resume x3, seek, next, previous; PLAYBACK_MODES_PASS repeat one actual, repeat all wrap, shuffle actual order; MEDIA_SESSION_PASS notification token, actions, pause/play, next, seek; BACKGROUND_SHORT_PASS; MISSING_MEDIA_RECOVERY_PASS")
             out.putString("transitions", transitionSnapshot.joinToString(","))
             instrumentation.sendStatus(0, out)
             instrumentation.finish(Activity.RESULT_OK, out)
